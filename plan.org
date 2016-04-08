@@ -1,0 +1,16 @@
+* Btree and Subsumption Test
+** TODO Btree
+*** DONE Structure
+**** DONE Abstract Node
+**** DONE Reified Node
+**** DONE Root Node
+**** DONE Branch Nodes
+**** DONE Leaf Nodes
+*** TODO Semantics
+**** TODO Working Tree
+**** TODO Node Type: Sequential / Parallel / Choice
+**** TODO Conflict Set
+**** TODO Continual Conditions
+**** TODO Run Step
+** TODO Subsumption
+
