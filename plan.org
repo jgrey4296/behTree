@@ -7,10 +7,11 @@
 **** DONE Branch Nodes
 **** DONE Leaf Nodes
 *** TODO Semantics
-**** TODO Working Tree
+**** DONE Working Tree
 **** TODO Node Type: Sequential / Parallel / Choice
-**** TODO Conflict Set
-**** TODO Continual Conditions
-**** TODO Run Step
+**** DONE Conflict Set
+**** DONE Continual Conditions
+**** DONE Run Step
+**** TODO Conditional Checking
 ** TODO Subsumption
 
