@@ -5,6 +5,7 @@ var BTree = require('./bTreeSimple'),
 
 module.exports = {
 
+    //check the ctor works
     init : function(test){
         let bTree = new BTree();
         test.ok(bTree !== undefined);
@@ -16,10 +17,11 @@ module.exports = {
         test.done();
     },
 
+    //add a basic behaviour
     addBehaviour : function(test){
         let bTree = new BTree();
         test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.behaviour('blah');
+        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
         test.done();
     },
@@ -28,9 +30,9 @@ module.exports = {
     addSecondBehaviour : function(test){
         let bTree = new BTree();
         test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.behaviour('blah');
+        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
-        bTree.behaviour('blah');
+        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
         test.ok(bTree.behaviourLibrary['blah'].length === 2);
         test.done();
@@ -40,9 +42,9 @@ module.exports = {
     addDifferentBehaviour : function(test){
         let bTree = new BTree();
         test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.behaviour('blah');
+        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
-        bTree.behaviour('bloo');
+        bTree.Behaviour('bloo');
         test.ok(_.keys(bTree.behaviourLibrary).length === 2);
         test.done();
     },
@@ -50,69 +52,69 @@ module.exports = {
     //check return is 'monad'
     checkForReturnMonad : function(test){
         let bTree = new BTree(),
-            behaviour = bTree.behaviour('blah');
+            behaviour = bTree.Behaviour('blah');
         test.ok(behaviour instanceof bTree.BehaviourMonad);
-        test.ok(behaviour.behaviours.length === 1);
-        test.ok(_.first(behaviour.behaviours) instanceof bTree.BehaviourAbstract);
+        test.ok(behaviour.behaviours.size === 1);
+        test.ok(_.first(Array.from(behaviour.behaviours)) instanceof bTree.BehaviourAbstract);
         test.done();
     },
     
     //----------
+    //get the behaviour abstract from inside the monad
     abstractBehaviourDefinition : function(test){
         let bTree = new BTree(),
-            behaviour = bTree.behaviour('blah').behaviours[0];
-        test.ok(behaviour !== undefined);
+            behaviourM = bTree.Behaviour('blah'),
+            behaviourAbstract = Array.from([behaviourM.behaviours])[0];
+        test.ok(behaviourAbstract !== undefined);
         test.done();
     },
 
     setSpecificity : function(test){
         let bTree = new BTree(),
-            b1 = bTree.behaviour('b1'),
-            b2 = bTree.behaviour('b1'),
-            b3 = bTree.behaviour('b1');
+            b1 = bTree.Behaviour('b1'),
+            b2 = bTree.Behaviour('b1'),
+            b3 = bTree.Behaviour('b1');
 
-        test.ok(b1.behaviours[0].specificity === 0);
-        test.ok(b2.behaviours[0].specificity === 0);
-        test.ok(b3.behaviours[0].specificity === 0);
-        
+        test.ok(Array.from(b1.behaviours)[0].specificity === 0);
+        test.ok(Array.from(b2.behaviours)[0].specificity === 0);
+        test.ok(Array.from(b3.behaviours)[0].specificity === 0);
         b1.specificity(-1);
         b2.specificity(10);
         b3.specificity(5);
-
-        test.ok(b1.behaviours[0].specificity === -1);
-        test.ok(b2.behaviours[0].specificity === 10);
-        test.ok(b3.behaviours[0].specificity === 5);
+        test.ok(Array.from(b1.behaviours)[0].specificity === -1);
+        test.ok(Array.from(b2.behaviours)[0].specificity === 10);
+        test.ok(Array.from(b3.behaviours)[0].specificity === 5);
         test.done();
     },
 
     checkSpecificitySorting : function(test){
         let bTree = new BTree(),
-            b1 = bTree.behaviour('b1'),
-            b2 = bTree.behaviour('b1'),
-            b3 = bTree.behaviour('b1'),
+            b1 = bTree.Behaviour('b1'),
+            b2 = bTree.Behaviour('b1'),
+            b3 = bTree.Behaviour('b1'),
             group = bTree.behaviourLibrary['b1'];
 
-        test.ok(b1.behaviours[0].specificity === 0);
-        test.ok(b2.behaviours[0].specificity === 0);
-        test.ok(b3.behaviours[0].specificity === 0);
+        test.ok(Array.from(b1.behaviours)[0].specificity === 0);
+        test.ok(Array.from(b2.behaviours)[0].specificity === 0);
+        test.ok(Array.from(b3.behaviours)[0].specificity === 0);
         
         b1.specificity(-1);
         b2.specificity(10);
         b3.specificity(5);
 
-        test.ok(b1.behaviours[0].specificity === -1);
-        test.ok(b2.behaviours[0].specificity === 10);
-        test.ok(b3.behaviours[0].specificity === 5);
+        test.ok(Array.from(b1.behaviours)[0].specificity === -1);
+        test.ok(Array.from(b2.behaviours)[0].specificity === 10);
+        test.ok(Array.from(b3.behaviours)[0].specificity === 5);
 
-        test.ok(group[0].id === b1.behaviours[0].id);
-        test.ok(group[1].id === b2.behaviours[0].id);
-        test.ok(group[2].id === b3.behaviours[0].id);
+        test.ok(group[0].id === Array.from(b1.behaviours)[0].id);
+        test.ok(group[1].id === Array.from(b2.behaviours)[0].id);
+        test.ok(group[2].id === Array.from(b3.behaviours)[0].id);
         
         bTree.sortBehaviours();
 
-        test.ok(group[0].id === b2.behaviours[0].id);
-        test.ok(group[1].id === b3.behaviours[0].id);
-        test.ok(group[2].id === b1.behaviours[0].id);
+        test.ok(group[0].id === Array.from(b2.behaviours)[0].id);
+        test.ok(group[1].id === Array.from(b3.behaviours)[0].id);
+        test.ok(group[2].id === Array.from(b1.behaviours)[0].id);
         test.done();
     },
         
@@ -181,6 +183,49 @@ module.exports = {
 
     //test conditions
 
+    entryConditionTest : function(test){
+        let testArray = [],
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('test')
+            .entryCondition(".this.is.a.test")
+            .entryAction([function(ctx){
+                testArray.push('test entry');
+            }]),
+            b2 = bTree.Behaviour('test2')
+            .entryCondition(".this.should.fail")
+            .entryAction([function(ctx){
+                testArray.push("test2 entry");
+            }]);
+        bTree.fb.assert(".this.is.a.test");
+        test.ok(testArray.length === 0);
+        bTree.root.addChild('test');
+        test.ok(testArray.length == 1);
+        test.ok(testArray[0] === 'test entry');
+        bTree.root.addChild('test2');
+        test.ok(testArray.length === 1);
+        test.done();
+    },
+
+    //fail test:
+    failConditionTest : function(test){
+        let testArray = [],
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('test1')
+            .failCondition(".this.should.fail")
+            .failAction([function(ctx){
+                testArray.push('test1 failed');
+            }]);
+
+        bTree.fb.assert(".this.should.fail");
+        
+        test.ok(testArray.length === 0);
+        bTree.root.addChild('test1');
+        bTree.update();
+        test.ok(testArray.length === 1);
+        test.ok(testArray[0] === 'test1 failed');
+        test.done();
+    },
+    
     //update test
 
     //sort behaviours test
@@ -191,7 +236,9 @@ module.exports = {
         let bTree = new BTree(),
             testVal = [];            
 
-        bTree.behaviour('test')
+        bTree.fb.assert(".this.is.a.test",".this.is.another!test");
+        
+        bTree.Behaviour('test')
             .priority(0)
             //.entryCondition(".this.is.a.test")
             //.waitCondition(".this.is.another!test")
@@ -209,7 +256,7 @@ module.exports = {
             })
             .value('spec',5);
 
-        bTree.behaviour('test2')
+        bTree.Behaviour('test2')
             //.entryCondition(".this.is.a.test")
             //.waitCondition(".this.is.another.test")
             .entryAction(function(ctx){
