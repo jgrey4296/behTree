@@ -197,7 +197,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTreeNodeReal.prototype.shiftToNextSpecificity = function(){
         this.currentSpecificity++;
         this.currentAbstract = this.abstractNodes[this.currentSpecificity];
-        while(this.currentAbstract !== undefined && !this.bTreeRef.testConditions(current.entryConditions)){
+        while(this.currentAbstract !== undefined && current.entryConditions.length > 0 && !this.bTreeRef.testConditions(current.entryConditions)){
             this.currentSpecificity++;
             this.currentAbstract = this.abstractNodes[this.currentSpecificity];
         }
@@ -220,7 +220,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             return true;
         }
         //check for failure
-        if(!this.bTreeRef.testConditions(this.currentAbstract.failConditions)){
+        if(this.currentAbstract.failConditions.length > 0 && this.bTreeRef.testConditions(this.currentAbstract.failConditions)){
             //try to go to next specificity:
             let failActions = this.currentAbstract.failActions.map(d=>_.bind(d,this));
             failActions.forEach(d=>d(this.bTreeRef));            
@@ -235,7 +235,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             }
         }
         //check for wait conditions
-        if(!this.bTreeRef.testConditions(this.currentAbstract.waitConditions)){
+        if(this.currentAbstract.waitConditions.length > 0 && this.bTreeRef.testConditions(this.currentAbstract.waitConditions)){
             return false;
         }
         //Hasn't failed, hasn't waited, so do perform actions:
@@ -328,7 +328,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             current = abstracts[i],
             realBehaviour;
         //test for entry success
-        while(current !== undefined && !this.bTreeRef.testConditions(current.entryConditions)){
+        while(current !== undefined && current.entryConditions.length > 0 && !this.bTreeRef.testConditions(current.entryConditions)){
             current = abstracts[++i];
         }
         //create the behaviour with the correct spec offset
@@ -343,10 +343,22 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     /**
        Behaviour Collection /monad for easy definition of abstract behaviours
     */
-    var BehaviourMonad = function(behaviours){
-        this.behaviours = behaviours;
+    var BehaviourMonad = function(behaviours,btree){
+        this.behaviours = new Set(behaviours);
+        this.btree = btree;
     };
 
+    //Add further behaviours to the monad:
+    BehaviourMonad.prototype.add = function(behaviours){
+        if(behaviours instanceof BehaviourMonad){
+            behaviours.behaviours.forEach(d=>this.behaviours.add(d));
+        }else if(behaviours instanceof Array){
+            behaviours.forEach(d=>this.behaviours.add(d));
+        }else if(behaviours instanceof string){
+            this.add(this.bTree.getAbstracts(behaviours));
+        }        
+    };
+    
     //Apply the specified variables to the function of the btnodeabstract
     BehaviourMonad.prototype.applyTo = function(paramName,variables){
         if(BTreeNodeAbstract.prototype[paramName] !== undefined){
@@ -452,13 +464,13 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     /**
        Register an Abstract Behaviour
     */
-    BTree.prototype.behaviour = function(name){
+    BTree.prototype.Behaviour = function(name){
         if(this.behaviourLibrary[name] === undefined){
             this.behaviourLibrary[name] = [];
         }
         let newBeh = new BTreeNodeAbstract(name);
         this.behaviourLibrary[name].push(newBeh);
-        return new BehaviourMonad([newBeh]);
+        return new BehaviourMonad([newBeh],this);
     };
     
     /**
