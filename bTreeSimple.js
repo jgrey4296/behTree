@@ -303,6 +303,28 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //if an attempt fails, try the next alt of it,
         //then fail
         //succeed if the child succeeds
+
+        if(this.lastReturnStatus === SUCCESS){
+            if(this.sequenceCounter === 0){
+                let potentialChildren = this.currentAbstract.children,
+                selectedChild = _.sample(potentialChildren),
+                    addSuccess = this.addChild(selectedChild);
+                this.sequenceCounter = 1;
+                if(selectedChild === undefined || !addSuccess){
+                    this.status = FIN;
+                    this.returnStatus = SUCCESS;
+                }
+            }else{
+                this.status = FIN;
+                this.returnStatus = SUCCESS;
+            }
+        }else{
+            this.shiftToNextSpecificity();
+            if(this.currentAbstract === undefined){
+                this.status = FIN;
+                this.returnStatus = FAIL;
+            }
+        }        
     };
 
     /**
