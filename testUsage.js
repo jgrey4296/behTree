@@ -12,7 +12,7 @@ let characters = [],
     bill = baseBTree.newCharacter({
         name : "bill",
     }),
-    turns = 7,
+    turns = 10,
     currentTurn = 0;
 
 //Load the characters:
@@ -20,7 +20,10 @@ characters.push(bob,bill);
 
 while(currentTurn++ < turns){
     console.log(`\nTurn: ${currentTurn}`);
-    characters.forEach(d=>d.update());
+    characters.forEach(d=>{
+        console.log(`Char: ${d.values.name}`);
+        d.update();
+    });
 }
 
 
