@@ -217,7 +217,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             this.returnSTATUS = FAIL;
             return true;
         }
-        console.log("Selected Node: " + this.currentAbstract.name);
+        //console.log("Selected Node: " + this.currentAbstract.name);
         //check for failure
         if(this.currentAbstract.failConditions.length > 0 && this.bTreeRef.testConditions(this.currentAbstract.failConditions)){
             //try to go to next specificity:
@@ -254,7 +254,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             }
         }else{
             //no children
-            console.log("No children, finishing");
+            //console.log("No children, finishing");
             this.status = FIN;
             this.returnStatus = SUCCESS;
         }
@@ -374,7 +374,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     
     //Apply the specified variables to the function of the btnodeabstract
     BehaviourMonad.prototype.applyTo = function(paramName,variables){
-        console.log("Applying:",paramName,variables);
+        //console.log("Applying:",paramName,variables);
         if(BTreeNodeAbstract.prototype[paramName] !== undefined){
             this.behaviours.forEach(function(d){
                 BTreeNodeAbstract.prototype[paramName].apply(d,variables);
@@ -452,7 +452,11 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.fb = sharedFactBase || new ExFB();
 
         //Instance specific values;
+        templateValues = templateValues || {};
         this.values = _.clone(templateValues);
+        if(this.values.name === undefined){
+            this.values.name = "Default BTree";
+        }
         
         //Constructors
         this.BehaviourAbstract = BTreeNodeAbstract;
@@ -529,7 +533,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             let parent = d.parent,
                 returnStatus = d.returnStatus;
             if(parent){
-                console.log("Updating parent");
+                //console.log("Updating parent");
                 //replace this with an 'update from child' method on the parent
                 delete parent.children[d.id];
                 if(_.keys(parent.children).length === 0){
@@ -548,7 +552,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
        update a node from the conflict set
      */
     BTree.prototype.update = function(){
-        console.log(`\nUpdating ${this.values.name}`);
+        //console.log(`\nUpdating ${this.values.name}`);
         this.updateConflictSet();
         //todo: adapt to select based on priority etc
         let chosenNode = _.sample(Array.from(this.conflictSet));
@@ -556,7 +560,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             chosenNode.update();
         }
 
-        console.log("Resulting Conflict Set:",Array.from(this.conflictSet).filter(d=>d.currentAbstract !== null).map(d=>d.currentAbstract.name));
+        //console.log("Resulting Conflict Set:",Array.from(this.conflictSet).filter(d=>d.currentAbstract !== null).map(d=>d.currentAbstract.name));
         
     };
 
