@@ -201,7 +201,9 @@ module.exports = {
         bTree.root.addChild('test');
         test.ok(testArray.length == 1);
         test.ok(testArray[0] === 'test entry');
-        bTree.root.addChild('test2');
+        test.throws(function(){
+            bTree.root.addChild('test2');
+        });
         test.ok(testArray.length === 1);
         test.done();
     },
