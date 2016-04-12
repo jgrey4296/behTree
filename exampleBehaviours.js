@@ -26,7 +26,7 @@ define(['underscore'],function(_){
                     console.log(`.initialBehaviour.${ctx.values.name} entry`);
                 }else{
                     ctx.fb.assert(`.initialBehaviour`);
-                    console.log(`.initialBehaviour entry`);
+                    console.log(`.initialBehaviour non-specific entry`);
                 }
             })
             .performAction(function(ctx){
@@ -43,9 +43,9 @@ define(['underscore'],function(_){
         bTree.Behaviour('secondBehaviour')
             .specificity(5)
             .entryCondition(d=>`.initialBehaviour.${d.values.name}`)
-            .entryAction(function(ctx){
+            .performAction(function(ctx){
                 ctx.fb.assert(`.secondBehaviour.${ctx.values.name}`);
-                console.log(`.secondBehaviour.${ctx.values.name}`);
+                console.log(`.secondBehaviour.${ctx.values.name} (perform)`);
             })
             .children("testChildBehaviour","testChildBehaviour")
             .exitAction(d=>console.log("secondBehaviour exit"));
@@ -57,9 +57,9 @@ define(['underscore'],function(_){
         console.log("Loading alt second behaviour");
         bTree.Behaviour('secondBehaviour')
             .specificity(0)
-            .entryAction(function(ctx){
+            .performAction(function(ctx){
                 ctx.fb.assert(`.secondBehaviour.alt.${ctx.values.name}`);
-                console.log(`.secondBehaviour.alt.${ctx.values.name}`);
+                console.log(`.secondBehaviour.alt.${ctx.values.name} (perform)`);
             })
             .exitAction(d=>console.log("alt second behaviour exit"));
     });

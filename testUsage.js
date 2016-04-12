@@ -21,7 +21,7 @@ characters.push(bob,bill);
 while(currentTurn++ < turns){
     console.log(`\nTurn: ${currentTurn}`);
     characters.forEach(d=>{
-        console.log(`Char: ${d.values.name}`);
+        console.log(`\n\tChar: ${d.values.name}`);
         d.update();
     });
 }
