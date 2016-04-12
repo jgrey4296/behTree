@@ -12,8 +12,10 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         CHO = Symbol(),
         //Node States:
         ACTIVE = Symbol(),
-        FIN = Symbol(),
+        FINISHED = Symbol(),
         INACTIVE = Symbol(),
+        WAIT = Symbol(),
+        
         //RETURN statuses
         SUCCESS = Symbol(),
         FAIL = Symbol();
@@ -207,97 +209,119 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
 
 
-    
+    /**
+       inform : update the state of a parent node without having to activate
+       and conflict set it, mainly useful for parallel nodes to update their num 
+       succeeded / failed amounts
+       @param childId The calling child
+       @param status The resulting state from the child
+     */
+    BTreeNodeReal.prototype.inform = function(childId,status){
+        //run exit actions if node completed successfully
+        this.children[childId].cleanup(status === FAIL ? false : true );
+        if(this.currentAbstract.type === SEQ){            
+            if(status === SUCCESS){
+                ////increment step counter
+                this.status = ACTIVE;
+                this.sequenceCounter++;
+                this.SEQ_Update()
+            }else if(this.parent){
+                this.parent.inform(this.id,STATUS);
+            }
+        }else if(this.type === CHO){
+            //if success
+            ////cleanup            
+            //if fail
+        }else if(this.type === PAR){
+            //if success
+            ////increment success counter
+            //if fail
+            ////increment fail counter
+            //cleanup children if necessary
+        }
+    };
+
+
     /**
        update
-       Updates the node, 
-       @returns {Boolean} T: executed, F: wait
+       The main update function outsources most things
      */
-    //returns true for executed, false for wait
     BTreeNodeReal.prototype.update = function(){
-        if(this.currentAbstract === undefined){
-            this.status = FIN;
-            this.returnSTATUS = FAIL;
-            return false;
-        }
-        //console.log("Selected Node: " + this.currentAbstract.name);
-        //check for failure
-        if(this.currentAbstract.failConditions.length > 0 && this.bTreeRef.testConditions(this.currentAbstract.failConditions)){
-            //try to go to next specificity:
-            let failActions = this.currentAbstract.failActions.map(d=>_.bind(d,this));
-            failActions.forEach(d=>d(this.bTreeRef));            
-            this.shiftToNextSpecificity();
-            if(this.currentAbstract === undefined){
-                this.status = FIN;
-                this.returnStatus = FAIL;
-                return true;
-            }else{
-                //although failed, theres yet more abstracts to try next time
-                return false;
+        try{
+            if(this.shouldFail()){
+                //console.log("Failing");
+                this.parent.inform(this.id,FAIL);
             }
+            if(this.shouldWait()){
+                //console.log("Waiting");
+                this.status = WAIT;
+            }
+            this.runActions();
+            this.typeUpdate();
+        }catch(error){
+            //If something goes wrong, fail the node
+            if(this.parent){
+                this.parent.inform(this.id,FAIL);
+            }
+            console.log(error);
+            //throw error;
         }
-        //check for wait conditions
-        if(this.currentAbstract.waitConditions.length > 0 && this.bTreeRef.testConditions(this.currentAbstract.waitConditions)){
-            return false;
+    };
+
+    BTreeNodeReal.prototype.shouldFail = function(){
+        if(this.currentAbstract.failConditions.length > 0){
+            return this.bTreeRef.testConditions(this.currentAbstract.failConditions);
         }
-        //Hasn't failed, hasn't waited, so do perform actions:
-        //todo: separate 'update' actions that occur every time,
-        //and 'perform' actions that only happen once?
+        return false;
+    };
+
+    BTreeNodeReal.prototype.shouldWait = function(){
+        if(this.currentAbstract.waitConditions.length > 0){
+            return this.bTreeRef.testConditions(this.currentAbstract.waitConditions);
+        }
+        return false;
+    };
+    
+    BTreeNodeReal.prototype.runActions = function(){
         if(this.performed === undefined){
             let actions = this.currentAbstract.performActions.map(d=>_.bind(d,this));
             actions.forEach(d=>d(this.bTreeRef));
             this.performed = true;
         }
-
-        //type update code relating to children:
-        if(this.currentAbstract && this.currentAbstract.children.length > 0){
-            if(this.currentAbstract.type === SEQ){
-                this.SEQ_Update();
-            }else if(this.currentAbstract.type === CHO){
-                this.CHO_update();
-            }else if(this.currentAbstract.type === PAR){
-                this.PAR_update();
-            }
-        }else{
-            //no children
-            //console.log("No children, finishing");
-            this.status = FIN;
-            this.returnStatus = SUCCESS;
-        }
-
-        //behaviour has finished, so run exit actions:
-        if(this.status === FIN && this.returnStatus === SUCCESS){
-            let postActions = this.currentAbstract.exitActions.map(d=>_.bind(d,this));
-            postActions.forEach(d=>d(this.bTreeRef));
-        }
-        return true;
     };
 
+    BTreeNodeReal.prototype.typeUpdate = function(){
+        if(this.currentAbstract.type === SEQ){
+            this.SEQ_Update();
+        }else if(this.currentAbstract.type === CHO){
+            this.CHO_update();
+        }else if(this.currentAbstract.type === PAR){
+            this.PAR_update();
+        } 
+    };
+
+    BTreeNodeReal.prototype.finalActions = function(){
+        let actions = this.currentAbstract.exitActions.map(d=>_.bind(d,this));
+        actions.forEach(d=>d(this.bTreeRef));
+    };
+
+    BTreeNodeReal.prototype.failActions = function(){
+        let actions = this.currentAbstract.failActions.map(d=>_.bind(d,this));
+        actions.forEach(d=>d(this.bTreeRef));
+    };
+    
     /**
        SEQ_update
        when called, steps the state of a sequential behaviour forward
     */
     BTreeNodeReal.prototype.SEQ_Update = function(){
-        if(this.lastReturnStatus === SUCCESS){
-            //get the next abstract behaviour in the sequence
-            //console.log("Current Sequence Counter: ", this.sequenceCounter);
-            //console.log("Potential Children:",this.currentAbstract.children);
-            let nextBehaviourName = this.currentAbstract.children[this.sequenceCounter++],
-                addSuccess = this.addChild(nextBehaviourName);
-            if(nextBehaviourName === undefined || !addSuccess){
-                this.status = FIN;
-                this.returnStatus = SUCCESS;
-            }else{
-                //console.log("Added child:",nextBehaviourName);
-            }
-        }else{
-            //the last attempt failed, try the next specificity
-            this.shiftToNextSpecificity();
-            this.lastReturnStatus = SUCCESS;
-            if(this.currentAbstract === undefined){
-                this.status = FIN;
-                this.returnStatus = FAIL;
-            }
+        let nextBehaviourName = this.currentAbstract.children[this.sequenceCounter];
+        //console.log("Adding:",nextBehaviourName);
+        if(nextBehaviourName !== undefined){
+            this.addChild(nextBehaviourName);
+        }else if(this.parent){
+            //console.log('informing parent');
+            this.parent.inform(this.id,SUCCESS);
         }
     };
 
@@ -317,17 +341,17 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
                     addSuccess = this.addChild(selectedChild);
                 this.sequenceCounter = 1;
                 if(selectedChild === undefined || !addSuccess){
-                    this.status = FIN;
+                    this.status = FINISHED;
                     this.returnStatus = SUCCESS;
                 }
             }else{
-                this.status = FIN;
+                this.status = FINISHED;
                 this.returnStatus = SUCCESS;
             }
         }else{
             this.shiftToNextSpecificity();
             if(this.currentAbstract === undefined){
-                this.status = FIN;
+                this.status = FINISHED;
                 this.returnStatus = FAIL;
             }
         }        
@@ -356,6 +380,24 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     };
 
+    //Cleanup:
+    BTreeNodeReal.prototype.cleanup = function(performPostActions){
+        //remove self from the conflict set 
+        this.bTreeRef.conflictSet.delete(this);
+        if(this.parent){
+            delete this.parent.children[this.id];
+        }
+        this.parent = null;
+        //cleanup all children:
+        _.values(this.children).forEach(d=>d.cleanup(performPostActions));
+        this.children = {};
+        //perform post actions
+        if(performPostActions){
+            this.finalActions();
+        }else{
+            this.failActions();
+        }
+    };
 
     /**
        addChild
@@ -364,6 +406,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
        @returns {Boolean} T: Successful add, F: no specificity was able to be added
      */
     BTreeNodeReal.prototype.addChild = function(childName){
+        //console.log("Adding: ",childName);
         let abstracts = this.bTreeRef.getAbstracts(childName),
             i = 0,
             current = abstracts[i],
@@ -375,9 +418,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //create the behaviour with the correct spec offset
         if(current !== undefined){
             realBehaviour = new BTreeNodeReal(abstracts,i,{},this,this.bTreeRef);
-            return true;
+        }else{
+            throw new Error("no suitable abstract for child");
         }
-        return false;
     };
 
     //------------------------------------------------------------------------------
@@ -553,41 +596,16 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     /**
        Update the conflict set:
     */
-    BTree.prototype.updateConflictSet = function(){
-        //remove finished nodes, updating parents as necessary
-        let conflictSet = Array.from(this.conflictSet),
-            finNodes = conflictSet.filter(d=>d.status === FIN || d.currentAbstract === undefined);
-        finNodes.forEach(function(d){
-            let parent = d.parent,
-                returnStatus = d.returnStatus;
-            if(parent){
-                //console.log("Updating parent");
-                //replace this with an 'update from child' method on the parent
-                delete parent.children[d.id];
-                if(_.keys(parent.children).length === 0){
-                    //console.log("Reactivating parent");
-                    parent.status = ACTIVE;
-                    parent.lastReturnStatus = returnStatus;
-                    this.conflictSet.add(parent);
-                }
-            }
-            delete this.allRealNodes[d.id];
-            this.conflictSet.delete(d);
-        },this);
-    };
-
     /**
        update a node from the conflict set
      */
     BTree.prototype.update = function(){
-        //console.log(`\nUpdating ${this.values.name}`);
-        this.updateConflictSet();
-        //todo: adapt to select based on priority etc
+        //console.log(`Conflict Set: `, Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
         let chosenNode = _.sample(Array.from(this.conflictSet));
         if(chosenNode){
+            //console.log("Chosen a node");
             chosenNode.update();
         }
-        //console.log("Resulting Conflict Set:",Array.from(this.conflictSet).filter(d=>d.currentAbstract !== null).map(d=>d.currentAbstract.name));
     };
 
     /**
