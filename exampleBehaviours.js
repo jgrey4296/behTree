@@ -67,7 +67,7 @@ define(['underscore'],function(_){
     //testChildBehaviour
     BehaviourModule.push(function(bTree){
         bTree.Behaviour('testChildBehaviour')
-            .performAction(ctx=>console.log("test child behaviour"));
+            .performAction(ctx=>console.log("test child behaviour (perform)"));
     });
     
     return BehaviourModule;

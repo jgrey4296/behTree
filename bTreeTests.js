@@ -120,27 +120,39 @@ module.exports = {
         
     //check:
     ////priority
+    prioritySetCheck : function(test){
+        let bTree = new BTree(),
+            b1 = bTree.Behaviour('b1'),
+            b2 = bTree.Behaviour('b2');
 
+        //combine the two monads
+        b1.add(b2);
+        test.ok(Array.from(b1.behaviours)[0].priority === 0);
+        test.ok(Array.from(b1.behaviours)[0].priority === 0);
+        b1.priority(5);
+        test.ok(Array.from(b1.behaviours)[0].priority === 5);
+        test.ok(Array.from(b1.behaviours)[1].priority === 5);
+        test.done();
+    },
+    
     ////specificity
+    specificitySetCheck : function(test){
+        let bTree = new BTree(),
+            b1 = bTree.Behaviour('b1'),
+            b2 = bTree.Behaviour('b2');
 
-    ////entryCondition
-
-    ////waitcondition
-
-    ////failcondition
-
-    ////entryaction
-
-    ////performaction
-
-    ////exitaction
-
-    ////children
-
-    ////value
-
-    ////type
-
+        //combine the two monads
+        b1.add(b2);
+        let behaviourArray = Array.from(b1.behaviours);
+        test.ok(behaviourArray[0].specificity === 0);
+        test.ok(behaviourArray[1].specificity === 0);
+        b1.specificity(5);
+        test.ok(behaviourArray[0].specificity === 5);
+        test.ok(behaviourArray[1].specificity === 5);
+                test.done();
+    },
+    
+    //TODO:checks to set conditions, actions, children etc would be a good idea
 
     //----------
     //check real node:
@@ -217,7 +229,6 @@ module.exports = {
             .failAction([function(ctx){
                 testArray.push('test1 failed');
             }]);
-
         bTree.fb.assert(".this.should.fail");
         
         test.ok(testArray.length === 0);
