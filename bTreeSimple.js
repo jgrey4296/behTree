@@ -219,6 +219,8 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTreeNodeReal.prototype.inform = function(childId,status){
         //run exit actions if node completed successfully
         this.children[childId].cleanup(status === FAIL ? false : true );
+        //console.log("Informed",this.id,this);
+        if(this.currentAbstract === undefined){ return; }
         if(this.currentAbstract.type === SEQ){            
             if(status === SUCCESS){
                 ////increment step counter
@@ -228,11 +230,11 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             }else if(this.parent){
                 this.parent.inform(this.id,STATUS);
             }
-        }else if(this.type === CHO){
+        }else if(this.currentAbstract.type === CHO){
             //if success
             ////cleanup            
             //if fail
-        }else if(this.type === PAR){
+        }else if(this.currentAbstract.type === PAR){
             //if success
             ////increment success counter
             //if fail
@@ -250,7 +252,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         try{
             if(this.shouldFail()){
                 //console.log("Failing");
-                this.parent.inform(this.id,FAIL);
+                throw new Error("Behaviour Fails");
             }
             if(this.shouldWait()){
                 //console.log("Waiting");
@@ -259,12 +261,10 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             this.runActions();
             this.typeUpdate();
         }catch(error){
-            //If something goes wrong, fail the node
+            //propagate the failure
             if(this.parent){
                 this.parent.inform(this.id,FAIL);
             }
-            console.log(error);
-            //throw error;
         }
     };
 
