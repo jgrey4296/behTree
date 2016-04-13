@@ -154,6 +154,100 @@ module.exports = {
     
     //TODO:checks to set conditions, actions, children etc would be a good idea
 
+    shouldFail_Condition_check : function(test){
+        let failValue = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('test_to_fail'),
+            b2 = bTree.Behaviour('test_to_succeed');
+        b1.failCondition(".this.condition.should.activate.failure")
+            .failAction(function(ctx){
+                failValue = 5;
+            });
+        b2.failCondition(".this.condition.should.not.activate.failure")
+            .failAction(function(ctx){
+                failValue = 10;
+            });
+        bTree.fb.assert(".this.condition.should.activate.failure");
+        bTree.root.addChild('test_to_succeed','test_to_fail');
+        test.ok(failValue === 0);
+        bTree.update();//check the failure doesnt activate
+        test.ok(failValue === 0);
+        bTree.update();//check the failure does activate
+        test.ok(failValue = 5);
+        test.done();
+    },
+
+    shouldWait_test : function(test){
+        let performVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('waitTest');
+        b1.waitCondition(".should.cause.a.wait");
+        b1.performAction(function(ctx){
+            performVal = 5;
+        });
+
+        bTree.root.addChild('waitTest');
+        bTree.fb.assert('.should.cause.a.wait');
+        for(let i = 0; i < 5; i++){
+            bTree.update();
+            test.ok(performVal === 0);
+        };
+        bTree.fb.retract('.should.cause.a.wait');
+        bTree.update();
+        test.ok(performVal === 5);
+        test.done();
+    },
+
+    parallel_test : function(test){
+        let performValA = 0,
+            performValB = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testParallel'),
+            b2 = bTree.Behaviour('subBehaviour1'),
+            b3 = bTree.Behaviour('subBehaviour2');
+        b1.type('parallel')
+            .children('subBehaviour1','subBehaviour2');
+        b2.performAction(ctx=>performValA = 5);
+        b3.performAction(ctx=>performValB = 10);
+        bTree.root.addChild('testParallel');
+        test.ok(_.keys(bTree.root.children).length === 1);
+        bTree.update();//activates the parallel, adding children
+        test.ok(bTree.conflictSet.size === 2);
+        test.ok(performValA === 0);
+        test.ok(performValB === 0);
+        bTree.update(); //activates one of the children
+        test.ok(bTree.conflictSet.size === 1);
+        //only one should have fired
+        test.ok(!(performValA === 5 && performValB === 10));
+        test.ok(performValA === 5 || performValB === 10);
+        //then fire the other one:
+        bTree.update();
+        //both should have fired now
+        test.ok(performValA === 5 && performValB === 10);
+        test.done();
+    },
+
+    conflictSet_selection_size_priority_test : function(test){
+        let testVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('toBeSelected'),
+            b2 = bTree.Behaviour('toBeIgnored');
+        //for the activation of the highest priority option
+        bTree.conflictSetSelectionSize = 1;
+        //set priorities and actions
+        b1.priority(5)
+            .performAction(ctx=>testVal = 5);
+        b2.performAction(ctx=>testVal = 10);
+        //add
+        bTree.root.addChild('toBeSelected').addChild('toBeIgnored');
+        test.ok(bTree.conflictSet.size === 2);
+        bTree.update(true);
+        test.ok(testVal === 5);
+        test.done();
+    },
+
+
+    
     //----------
     //check real node:
 
@@ -166,7 +260,7 @@ module.exports = {
     //defult status, return status, lastReturnStatus
 
     //update of parent, conflictset
-
+    
     //shift to next specificty
 
     //SEQ update
