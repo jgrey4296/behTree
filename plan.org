@@ -2,16 +2,37 @@
 ** TODO Btree
 *** DONE Structure
 **** DONE Abstract Node
+Definitions of behaviours, prior to being added to the tree
 **** DONE Reified Node
+Actual working tree nodes, that use a particular specificity of a behaviour
 **** DONE Root Node
+defaults to assuming an initial tree
 **** DONE Branch Nodes
+
 **** DONE Leaf Nodes
+No different from other nodes, just without children, will execute actions then complete
 *** TODO Semantics
 **** DONE Working Tree
-**** TODO Node Type: Sequential / Parallel / Choice
+Based on the root node, nothing particularly special
 **** DONE Conflict Set
-**** DONE Continual Conditions
-**** DONE Run Step
-**** TODO Conditional Checking
-** TODO Subsumption
+Maintained automatically as nodes are created or failed.
+Addition to the conflict set takes place in the BTreeNodeReal constructor
+Removal occurs in BTreeNodeReal cleanup
+***** TODO Implement conflict set as a heap
+**** TODO Node Type: Sequential / Parallel / Choice
+***** DONE Sequential
+Progress sequentially through the list of children, 
+if one fails, the sequential behaviour itself fails
+***** TODO Parallel
+***** TODO Choice
+**** Conditions
+***** DONE Entry
+***** DONE Wait
+***** Exit
+***** DONE Failure
+***** TODO Continual
+**** TODO Update Step
+Currently has basic functionality, picking from the conflict set at random. need to 
+take into account priority. possibly a heap is in order
+**** Unit Tests
 
