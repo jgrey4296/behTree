@@ -199,9 +199,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         if(this.parent){
             this.parent.status = INACTIVE;
             this.bTreeRef.conflictSet.delete(this.parent);
-            this.bTreeRef.conflictSet.add(this);
             this.parent.children[this.id] = this;
         }
+        this.bTreeRef.conflictSet.add(this);
     };
     BTreeNodeReal.constructor = BTreeNodeReal;
 
@@ -359,13 +359,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     /**
        CHOICE_update
-       steps a choice behaviour forward
+       chooses a single child to pursue
     */
     BTreeNodeReal.prototype.CHOICE_update = function(){
-        //make a choice from the specified alternatives and add that
-        //if an attempt fails, try the next alt of it,
-        //then fail
-        //succeed if the child succeeds
         if(!this.selectedChoice){
             let potentialChildren = _.shuffle(Array.from(this.currentAbstract.children));
             //get a choice, try to add it
@@ -395,7 +391,6 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
                     this.addChild(d);
                 }catch(error){
                     //if a behaviour fails to even add, increment the counter
-                    console.log("update failure count");
                     this.parallelFailureCounter++;
                 }});
             this.hasAddedParallelChildren = true;
@@ -473,6 +468,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     //------------------------------------------------------------------------------
     /**
        Behaviour Collection /monad for easy definition of abstract behaviours
+       also allows setting of parameters of groups of behaviours at once
     */
     var BehaviourMonad = function(behaviours,btree){
         this.behaviours = new Set(behaviours);
@@ -550,7 +546,6 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
     
     BehaviourMonad.prototype.children = function(...vars){
-        //console.log("Children called:",vars);
         return this.applyTo('children',vars);
     };
 
@@ -575,8 +570,6 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //root of the working tree: no abstract, spec, values, or parent. 
         this.root = new BTreeNodeReal(this.getAbstracts('initialTree'),undefined,undefined,undefined,this);
         this.root.type = PARALLEL;
-        //this.root.addChild('initialTree');
-        this.conflictSet.add(this.root);
         //The Exclusion Logic Fact Base:
         this.fb = sharedFactBase || new ExFB();
 
@@ -601,6 +594,16 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
     BTree.constructor = BTree;
 
+    //utilities for assertion/retraction of facts
+    BTree.prototype.assert = function(...values){
+        this.fb.assert(values);
+    };
+
+    BTree.prototype.retract = function(...values){
+        this.fb.retract(values);
+    };
+    
+    //Load descriptions of behaviours
     BTree.prototype.loadBehaviours = function(behaviourLibraryAdditions){
         //console.log("Loading: ",behaviourLibraryAdditions);
         if((behaviourLibraryAdditions instanceof Array) && behaviourLibraryAdditions.length > 0){
@@ -618,10 +621,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             },this);
         }
     };
-    
+
+    //Create a separate BTree, but with shared facts, and behaviour library
     BTree.prototype.newCharacter = function(contextValues){
-        //create and share the fact base and abstracts:
-        //console.log("Shared BTree to new character: " + contextValues.name);
         let newCharacter = new BTree(this.fb,_.values(this.behaviourLibrary),contextValues);
         return newCharacter;
     };
@@ -641,6 +643,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     
     /**
        Register an Abstract Behaviour
+       @param {String} name
     */
     BTree.prototype.Behaviour = function(name){
         if(this.behaviourLibrary[name] === undefined){
@@ -656,10 +659,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
     
     /**
-       Update the conflict set:
-    */
-    /**
-       update a node from the conflict set
+       The main update method, steps the btree forward
     */
     BTree.prototype.update = function(printChosenNode){
         //Sort the conflict set by priority, choose from the top 5 in the set
@@ -673,6 +673,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     /**
        testConditions
        Test the set of statements against the fact base
+       @see module:ExclusionLogic
        @param {Array} testStatements
        @returns {Boolean}
     */
@@ -680,7 +681,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         let transformedTestStatements = testStatements.map(function(d){
             if(typeof d === 'string') { return d; }
             if(typeof d === 'function') { return d(this); }
-            return ".";
+            return ".";//a default empty statement
         },this),
             i = testStatements.length,
             lastResult = true;
@@ -689,7 +690,6 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         }
         return lastResult;
     };    
-
 
     /**
        sortBehaviours
