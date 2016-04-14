@@ -18,14 +18,16 @@ let characters = [],
 //Load the characters:
 characters.push(bob,bill);
 
-while(currentTurn++ < turns){
-    console.log(`\nTurn: ${currentTurn}`);
+let intervalObject = setInterval(function(){
+    console.log(`\nTurn ${currentTurn}`);
+    if(turns < currentTurn++){
+        clearInterval(intervalObject);
+    }
     characters.forEach(d=>{
         console.log(`\n\tChar: ${d.values.name}`);
         d.update();
     });
-}
-
-
+    
+},2000);
 
 
