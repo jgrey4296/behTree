@@ -619,7 +619,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         }
         let newBeh = new BTreeNodeAbstract(name);
         this.behaviourLibrary[name].push(newBeh);
-        if(name === 'initialTree'){
+        if(this.root && name === 'initialTree'){
             this.root.abstractNodes = this.behaviourLibrary.initialTree;
             this.root.currentAbstract = this.root.abstractNodes[0];
         }        
