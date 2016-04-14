@@ -247,46 +247,51 @@ module.exports = {
     },
 
 
+    persistentCheck : function(test){
+        let testVal = 0,
+            referenceVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testPersistent');
+        b1.persistent(true)
+            .persistCondition(".a.persistent.condition")
+            .performAction(ctx=>testVal += 5);
+        bTree.root.addChild('testPersistent');
+        bTree.fb.assert(".a.persistent.condition");
+
+        test.ok(Array.from(b1.behaviours)[0].persistent === true);
+        
+        //run the btree repeatedly.
+        //refence val and testval should increment together
+        for(let i = 0; i < 10; i++){
+            referenceVal += 5;
+            bTree.update();
+            test.ok(testVal === referenceVal);
+        }
+
+        test.ok(testVal === referenceVal);
+        test.done();
+    },
+    
     
     //----------
     //check real node:
-
     //current abstract based on specificity
-
     //values
-
     //children
-
     //defult status, return status, lastReturnStatus
-
     //update of parent, conflictset
-    
     //shift to next specificty
-
     //SEQ update
-
     //CHO update
-
     //PAR update
-
     //add child
-
     //----------
     //BTree
-
     //conflict set update
-
     //fact base
-
     //get abstracts
-
-        
     //assert facts to bTree
-
-
     //----------
-
-
     //test conditions
 
     entryConditionTest : function(test){
