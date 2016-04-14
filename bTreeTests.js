@@ -267,8 +267,67 @@ module.exports = {
             bTree.update();
             test.ok(testVal === referenceVal);
         }
-
+        //retract, failing the persist condition:
+        bTree.fb.retract(".a.persistent.condition");
+        //should exist for one more update, then testVal and referenceVal should stay static
+        referenceVal += 5;
+        test.ok(bTree.conflictSet.size === 1);
+        bTree.update();//behaviour is removed here
         test.ok(testVal === referenceVal);
+        test.ok(bTree.conflictSet.size === 0);//nothing remains on the active tree
+        bTree.update();
+        test.ok(testVal === referenceVal);        
+        test.done();
+    },
+
+    specificity_fallback_check : function(test){
+        let testVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testSpecificity'),
+            b2 = bTree.Behaviour('testSpecificity');
+        b1.specificity(5)
+            .entryCondition(".this.will.fail")
+            .performAction(ctx=>testVal = 5);
+        b2.specificity(2)
+            .performAction(ctx=>testVal = 10);
+
+        bTree.root.addChild('testSpecificity');
+        test.ok(testVal === 0);
+        bTree.update();
+        test.ok(testVal === 10);        
+        test.done();
+    },
+
+
+    specificity_persistent_fallback_check : function(test){
+        let testVal = 0,
+            entryConditionString = ".this.will.fail.initially",
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testSpecificity'),
+            b2 = bTree.Behaviour('testSpecificity');
+        b1.specificity(5)
+            .entryCondition(entryConditionString)
+            .performAction(ctx=>testVal = 5)
+            .persistent(true);
+        b2.specificity(2)
+            .performAction(ctx=>testVal = 10)
+            .persistent(true);
+        //first check the fallback:
+        //bTree.fb.assert(entryConditionString);
+        bTree.root.addChild('testSpecificity');
+        test.ok(testVal === 0);
+        //retract ready for the re-add
+        bTree.fb.assert(entryConditionString);
+        bTree.update();
+        test.ok(testVal === 10);
+        //reassert for the re-add
+        bTree.fb.retract(entryConditionString);
+        bTree.update();
+        test.ok(testVal === 5);
+        //and back again
+        bTree.fb.assert(entryConditionString);
+        bTree.update();
+        test.ok(testVal === 10);
         test.done();
     },
     
