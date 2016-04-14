@@ -8,7 +8,6 @@ Actual working tree nodes, that use a particular specificity of a behaviour
 **** DONE Root Node
 defaults to assuming an initial tree
 **** DONE Branch Nodes
-
 **** DONE Leaf Nodes
 No different from other nodes, just without children, will execute actions then complete
 *** TODO Semantics
@@ -23,16 +22,16 @@ Removal occurs in BTreeNodeReal cleanup
 ***** DONE Sequential
 Progress sequentially through the list of children, 
 if one fails, the sequential behaviour itself fails
-***** TODO Parallel
+***** DONE Parallel
 ***** TODO Choice
 **** Conditions
 ***** DONE Entry
 ***** DONE Wait
-***** Exit
+***** DONE Exit
 ***** DONE Failure
 ***** TODO Continual
-**** TODO Update Step
-Currently has basic functionality, picking from the conflict set at random. need to 
-take into account priority. possibly a heap is in order
+**** DONE Update Step
+Now selects from the top n based on priority from the conflict set.
+**** TODO Persistence
 **** Unit Tests
 
