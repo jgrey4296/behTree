@@ -32,6 +32,10 @@ if one fails, the sequential behaviour itself fails
 ***** TODO Continual
 **** DONE Update Step
 Now selects from the top n based on priority from the conflict set.
-**** TODO Persistence
+**** DONE Persistence
+Persistence achieved with persist conditions, persistence state, 
+and a persist check in the cleanup routine. Guarding against infinite loops 
+of cleanup -> parent inform -> cleanup by removing from parent's children first,
+then re-adding.
 **** Unit Tests
 
