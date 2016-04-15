@@ -561,6 +561,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //name -> [abstracts]
         this.behaviourLibrary = {};
         this.loadBehaviours(sharedAbstractLibrary);
+        this.sortBehaviours();
         //id -> node
         this.allRealNodes = {};
         //the conflict set:
@@ -596,11 +597,11 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     //utilities for assertion/retraction of facts
     BTree.prototype.assert = function(...values){
-        this.fb.assert(values);
+        values.forEach(d=>this.fb.assert(d));
     };
 
     BTree.prototype.retract = function(...values){
-        this.fb.retract(values);
+        values.forEach(d=>tihs.fb.retract(d));
     };
     
     //Load descriptions of behaviours
@@ -687,6 +688,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             lastResult = true;
         while(lastResult && --i >= 0){
             lastResult = this.fb.exists(transformedTestStatements[i]);
+            //console.log(transformedTestStatements[i],lastResult);
         }
         return lastResult;
     };    
