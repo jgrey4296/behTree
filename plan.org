@@ -30,6 +30,10 @@ if one fails, the sequential behaviour itself fails
 ***** DONE Exit
 ***** DONE Failure
 ***** TODO Continual
+***** TODO Binding
+****** TODO bind string creation to the Real Node
+****** TODO % operator in exclusion logic
+****** TODO integrate bindings in tests
 **** DONE Update Step
 Now selects from the top n based on priority from the conflict set.
 **** DONE Persistence
@@ -38,4 +42,4 @@ and a persist check in the cleanup routine. Guarding against infinite loops
 of cleanup -> parent inform -> cleanup by removing from parent's children first,
 then re-adding.
 **** Unit Tests
-
+**** TODO Flesh out the README
