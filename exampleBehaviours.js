@@ -17,28 +17,16 @@ define(['underscore'],function(_){
             .children('move');
     });
 
+    //Test non-specific move
     BMod.push(function(bTree){
-        bTree.Behaviour('move')//to kitchen
-            .specificity(2)
-            .persistent(true)
-            .entryCondition([`.locations.kitchen`,d=>`!!.${d.values.name}.location!kitchen`])
-            .entryAction(ctx=>console.log("(enter) move.s2"))
-            .performAction(ctx=>ctx.assert(`.${ctx.values.name}.location!kitchen`));
-    });
-
-    BMod.push(function(bTree){
-        bTree.Behaviour('move')//to diningRoom
-            .specificity(5)
-            .persistent(true)
-            .entryCondition([`.locations.diningRoom`,d=>`!!.${d.values.name}.location!diningRoom`])
-            .entryAction(ctx=>console.log("(enter) move.s5"))
-            .performAction(ctx=>{
-                ctx.assert(`.${ctx.values.name}.location!diningRoom`);
-                console.log(`${ctx.values.name} Moving to dining room`);
+        bTree.Behaviour('move')
+            .entryCondition([`.locations.%{x}`,(d,n)=>`!!.${d.values.name}.location!${n.bindings.x}`])
+            .performAction((ctx,n)=>{
+                ctx.assert(`.${ctx.values.name}.location!${n.bindings.x}`);
+                console.log(`Moving ${ctx.values.name} to ${n.bindings.x}`);
             });
+        
     });
-                         
-    
     
     return BMod;
 });

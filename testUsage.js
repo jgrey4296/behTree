@@ -25,8 +25,6 @@ characters.push(bob,bill);
 
 let intervalObject = setInterval(function(){
     console.log(`\nTurn ${currentTurn}`);
-    console.log('\tFacts:' + baseBTree.fb.toStrings().map(e=>`\n\t${e}`).join(""));
-    
     if(turns < currentTurn++){
         clearInterval(intervalObject);
     }
@@ -34,7 +32,8 @@ let intervalObject = setInterval(function(){
         console.log(`\n\tChar: ${d.values.name}`);
         d.update();
     });
-    
+
+    console.log('\n\n\tFacts:' + baseBTree.fb.toStrings().map(e=>`\n\t${e}`).join(""));
 },2000);
 
 
