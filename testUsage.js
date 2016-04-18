@@ -5,7 +5,7 @@ var BTree = require('./bTreeSimple'),
     _ = require('underscore');
 
 let characters = [],
-    baseBTree = new BTree(undefined,behaviourModule),
+    baseBTree = new BTree(undefined,behaviourModule,undefined),
     bob = baseBTree.newCharacter({
         name : "bob",
     }),
