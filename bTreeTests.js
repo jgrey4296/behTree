@@ -473,5 +473,67 @@ module.exports = {
         test.ok(testVal.length === 5,testVal.length);
         test.done();
     },
+
+    sequential_persistent_nesting : function(test){
+        let testVal = 0,
+            bTree = new BTree();
+        bTree.Behaviour('topSequentialBehaviour')
+            .type('sequential')
+            .persistent(true)
+            .children('theSetup','theBody','theTearDown');
+
+        bTree.Behaviour('theSetup')
+            .performAction([a=>testVal = 100,a=>a.assert(".should.persist")]);
+
+        bTree.Behaviour('theBody')
+            .persistent(true)
+            .persistCondition(".should.persist","!!.has.finished")
+            .performAction(a=>{
+                if(testVal < 110){
+                    testVal += 2;
+                }else{
+                    a.retract(".should.persist");
+                    a.assert(".has.finished");;
+                }
+            });
+
+        bTree.Behaviour('theTearDown')
+            .entryCondition(".has.finished")
+            .performAction(a=>{
+                a.retract(".has.finished");
+                testVal = 200;
+            });
+
+        bTree.root.addChild("topSequentialBehaviour");
+        //update to add theSetup
+        bTree.update();
+        //update to perform theSetup
+        bTree.update();
+        test.ok(testVal === 100);
+        test.ok(bTree.fb.exists(".should.persist"));
+        //loop for the increments from 100 to 110
+        for(let a = 100; a < 110;){
+            bTree.update();
+            a += 2;
+            test.ok(testVal === a);
+        }
+        test.ok(testVal === 110);
+        //update retract/assert:
+        bTree.update();
+        test.ok(bTree.fb.exists("!!.should.persist"));
+        test.ok(bTree.fb.exists(".has.finished"));
+        //update to perform theTearDown
+        bTree.update();
+        test.ok(bTree.fb.exists("!!.has.finished",
+                                "!!.should.persist"));
+        //update to perform the topLevel, add the setup:
+        bTree.update();
+        bTree.update();
+        test.ok(testVal === 100);
+        test.ok(bTree.fb.exists(".should.persist"));
+        test.done();
+    },
+
+
     
 };
