@@ -259,7 +259,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     BTreeNodeReal.prototype.informParent = function(status,override){
         //console.log('informing parent of ',this.currentAbstract.name,status);
+        this.bTreeRef.debug('update',`informing parent:`+status.toString());
         if(override === undefined && this.currentAbstract.persistent && this.bTreeRef.testConditions(this.currentAbstract.persistConditions)){
+            this.bTreeRef.debug('update','resetting persistent');
             //reset the node:
             this.sequenceCounter = 0;
             this.parallelFailureCounter = 0;
