@@ -117,7 +117,7 @@ module.exports = {
         test.ok(group[2].id === Array.from(b1.behaviours)[0].id);
         test.done();
     },
-        
+    
     //check:
     ////priority
     prioritySetCheck : function(test){
@@ -149,7 +149,7 @@ module.exports = {
         b1.specificity(5);
         test.ok(behaviourArray[0].specificity === 5);
         test.ok(behaviourArray[1].specificity === 5);
-                test.done();
+        test.done();
     },
     
     //TODO:checks to set conditions, actions, children etc would be a good idea
@@ -252,12 +252,12 @@ module.exports = {
             referenceVal = 0,
             bTree = new BTree(),
             b1 = bTree.Behaviour('testPersistent');
+        
         b1.persistent(true)
             .persistCondition(".a.persistent.condition")
             .performAction(ctx=>testVal += 5);
         bTree.root.addChild('testPersistent');
         bTree.fb.assert(".a.persistent.condition");
-
         test.ok(Array.from(b1.behaviours)[0].persistent === true);
         
         //run the btree repeatedly.
@@ -276,7 +276,7 @@ module.exports = {
         test.ok(testVal === referenceVal);
         test.ok(bTree.conflictSet.size === 0);//nothing remains on the active tree
         bTree.update();
-        test.ok(testVal === referenceVal);        
+        test.ok(testVal === referenceVal);
         test.done();
     },
 
@@ -411,11 +411,11 @@ module.exports = {
         
         bTree.Behaviour('test')
             .priority(0)
-            //.entryCondition(".this.is.a.test")
-            //.waitCondition(".this.is.another!test")
-            //.failCondition(".a.fail.test")
+        //.entryCondition(".this.is.a.test")
+        //.waitCondition(".this.is.another!test")
+        //.failCondition(".a.fail.test")
             .type("seq")
-            //.children("test2.p4, test3.p1")
+        //.children("test2.p4, test3.p1")
             .entryAction(function(ctx){
                 testVal.push("test entry");
             })
@@ -428,8 +428,8 @@ module.exports = {
             .value('spec',5);
 
         bTree.Behaviour('test2')
-            //.entryCondition(".this.is.a.test")
-            //.waitCondition(".this.is.another.test")
+        //.entryCondition(".this.is.a.test")
+        //.waitCondition(".this.is.another.test")
             .entryAction(function(ctx){
                 testVal.push("test2 entry");
             })
@@ -450,7 +450,28 @@ module.exports = {
 
         test.done();
     },
-    
 
+    persistent_behaviour_check : function(test){
+        let bTree = new BTree(undefined,undefined,{
+            count : 0
+        }),
+            testVal = [];
+        bTree.Behaviour('persistentCheck')
+            .persistent(true)
+            .persistCondition('!!.persistent.finished')
+            .performAction((a,n)=>{
+                a.values.count++;
+                if(a.values.count >= 5){
+                    a.assert('.persistent.finished');
+                }
+                testVal.push(1);
+            });
+        bTree.root.addChild('persistentCheck');
+        for(let i = 0; i < 10; i++){
+            bTree.update();
+        }
+        test.ok(testVal.length === 5,testVal.length);
+        test.done();
+    },
     
 };
