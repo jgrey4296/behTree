@@ -270,6 +270,8 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             //reset the specificity:
             try {
                 this.findSpecificity(true);
+                //add self back to the conflict set for next turn:
+                this.bTreeRef.conflictSet.add(this);
             }catch(error){
                 if(!(error instanceof BTreeError)){ throw error; }
                 this.bTreeRef.debug('failure',error);
