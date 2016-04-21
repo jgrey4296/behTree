@@ -17,7 +17,7 @@ Based on the root node, nothing particularly special
 Maintained automatically as nodes are created or failed.
 Addition to the conflict set takes place in the BTreeNodeReal constructor
 Removal occurs in BTreeNodeReal cleanup
-***** TODO Implement conflict set as a heap
+***** TODO Implement conflict set as a heap?
 **** DONE Node Type: Sequential / Parallel / Choice
 ***** DONE Sequential
 Progress sequentially through the list of children, 
@@ -53,3 +53,26 @@ should separate update loop into distinct sections:
     * Perform Type Updates
     * Add new nodes
     * bubble up success / failure
+**** TODO add context conditions
+context conditions of a behaviour should be registered to be checked each update cycle
+**** TODO let priority be weighted rules
+priority should be a combination of numbers, and test strings that give success/failure weights
+ie:.bob.friends.bill#5/-2  ---- if bob is friends with bill, +5 to priority, else -2 to priority
+**** TODO decide on persistent/entry condition/action interaction
+     persistence tests entryconditions, but doesnt re-fire entry actions,
+i'm using entry conditions to select specificity, so what would be preferable here?
+**** TODO refactor names.
+children -> subgoals etc
+**** TODO add persistence until success / failure?
+or does the persist condition fulfill that? no.
+three types:
+persist while conditions succeed,
+persist until behaviour succeeds
+persist until behaviour fails 
+**** DONE test parent node of an instance node
+**** DONE test specification of multiple tests/parameters to behaviours
+at the moment array application of parameters is a bit wonky.
+**** DONE wrap action in try catch block for easier diagnosing of failures
+**** TODO Auto-infer specificity based on sum conditions
+**** TODO Switch current specificity to manual 'preference' that supersedes specificity
+

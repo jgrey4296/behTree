@@ -1,7 +1,7 @@
 /* jshint esversion : 6 */
 "use strict";
 var BTree = require('./bTreeSimple'),
-    _ = require('underscore');
+    _ = require('lodash');
 
 module.exports = {
 
@@ -64,7 +64,7 @@ module.exports = {
     abstractBehaviourDefinition : function(test){
         let bTree = new BTree(),
             behaviourM = bTree.Behaviour('blah'),
-            behaviourAbstract = Array.from([behaviourM.behaviours])[0];
+            behaviourAbstract = behaviourM.toArray()[0];
         test.ok(behaviourAbstract !== undefined);
         test.done();
     },
@@ -75,15 +75,15 @@ module.exports = {
             b2 = bTree.Behaviour('b1'),
             b3 = bTree.Behaviour('b1');
 
-        test.ok(Array.from(b1.behaviours)[0].specificity === 0);
-        test.ok(Array.from(b2.behaviours)[0].specificity === 0);
-        test.ok(Array.from(b3.behaviours)[0].specificity === 0);
+        test.ok(b1.toArray()[0].specificity === 0);
+        test.ok(b2.toArray()[0].specificity === 0);
+        test.ok(b3.toArray()[0].specificity === 0);
         b1.specificity(-1);
         b2.specificity(10);
         b3.specificity(5);
-        test.ok(Array.from(b1.behaviours)[0].specificity === -1);
-        test.ok(Array.from(b2.behaviours)[0].specificity === 10);
-        test.ok(Array.from(b3.behaviours)[0].specificity === 5);
+        test.ok(b1.toArray()[0].specificity === -1);
+        test.ok(b2.toArray()[0].specificity === 10);
+        test.ok(b3.toArray()[0].specificity === 5);
         test.done();
     },
 
@@ -358,14 +358,14 @@ module.exports = {
             bTree = new BTree(),
             b1 = bTree.Behaviour('test')
             .entryCondition(".this.is.a.test")
-            .entryAction([function(ctx){
+            .entryAction(function(ctx){
                 testArray.push('test entry');
-            }]),
+            }),
             b2 = bTree.Behaviour('test2')
             .entryCondition(".this.should.fail")
-            .entryAction([function(ctx){
+            .entryAction(function(ctx){
                 testArray.push("test2 entry");
-            }]);
+            });
         bTree.fb.assert(".this.is.a.test");
         test.ok(testArray.length === 0);
         bTree.root.addChild('test');
@@ -384,9 +384,9 @@ module.exports = {
             bTree = new BTree(),
             b1 = bTree.Behaviour('test1')
             .failCondition(".this.should.fail")
-            .failAction([function(ctx){
+            .failAction(function(ctx){
                 testArray.push('test1 failed');
-            }]);
+            });
         bTree.fb.assert(".this.should.fail");
         
         test.ok(testArray.length === 0);
@@ -419,9 +419,9 @@ module.exports = {
             .entryAction(function(ctx){
                 testVal.push("test entry");
             })
-            .performAction([function(ctx){
+            .performAction(function(ctx){
                 testVal.push("test perform");
-            }])
+            })
             .exitAction(function(ctx){
                 testVal.push("test exit");
             })
@@ -433,9 +433,9 @@ module.exports = {
             .entryAction(function(ctx){
                 testVal.push("test2 entry");
             })
-            .performAction([function(ctx){
+            .performAction(function(ctx){
                 testVal.push("test2 perform");
-            }])
+            })
             .exitAction(function(ctx){
                 testVal.push("test2 exit");
             });
@@ -483,7 +483,7 @@ module.exports = {
             .children('theSetup','theBody','theTearDown');
 
         bTree.Behaviour('theSetup')
-            .performAction([a=>testVal = 100,a=>a.assert(".should.persist")]);
+            .performAction(a=>testVal = 100,a=>a.assert(".should.persist"));
 
         bTree.Behaviour('theBody')
             .persistent(true)
@@ -535,5 +535,84 @@ module.exports = {
     },
 
 
-    
+    parallel_priority_test : function(test){
+        let testVal = 0,
+            bTree = new BTree();
+
+        bTree.conflictSetSelectionSize = 1;
+        
+        bTree.Behaviour('parPriorTest')
+            .type('parallel')
+            .children('p1','p2','p3');
+
+        bTree.Behaviour('p1')
+            .priority(1)
+            .performAction(a=>testVal = 1);
+
+        bTree.Behaviour('p2')
+            .priority(2)
+            .performAction(a=>testVal = 2);
+
+        bTree.Behaviour('p3')
+            .priority(3)
+            .performAction(a=>testVal = 3);
+
+        bTree.root.addChild('parPriorTest');
+        //update to add the behaviours:
+        bTree.update();
+        test.ok(bTree.conflictSet.size === 3);
+        test.ok(testVal === 0,testVal);
+        //update to perform first behaviour:
+        bTree.update();
+        test.ok(testVal === 3,testVal);
+        //second behaviour:
+        bTree.update();
+        test.ok(testVal === 2,testVal);
+        //third behaviour
+        bTree.update();
+        test.ok(testVal === 1,testVal);
+        
+        test.done();
+    },
+
+    real_node_parent_test : function(test){
+        let parentVal = null,
+            parentVal_fromChild = null,
+            bTree = new BTree();
+
+        bTree.Behaviour('testParent')
+            .children('testChild')
+            .performAction((c,n)=>parentVal = n);
+
+        bTree.Behaviour('testChild')
+            .performAction((c,n)=>{
+                parentVal_fromChild = n.parent;
+            });
+
+        bTree.root.addChild('testParent');
+        //update to perform testParent
+        bTree.update();
+        //update to perform testChild
+        bTree.update();
+        
+        test.ok(parentVal_fromChild !== null);
+        test.ok(parentVal_fromChild.id === parentVal.id);
+        
+        test.done();
+    },
+
+    multi_behaviour_parameter_specification : function(test){
+        let bTree = new BTree(),
+            behaviour = bTree.Behaviour('test')
+            .entryCondition('.this.is.one.test',
+                            '.this.is.a.second.test');
+        
+        test.ok(behaviour.toArray()[0].entryConditions.length === 2);
+        behaviour.entryCondition('.this.is.a.third.test');
+        test.ok(behaviour.toArray()[0].entryConditions.length === 3);
+        behaviour.entryCondition();
+        test.ok(behaviour.toArray()[0].entryCondition.length === 0);                
+        test.done();
+    },
+        
 };

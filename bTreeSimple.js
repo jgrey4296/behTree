@@ -3,7 +3,7 @@ if(typeof define !== 'function'){
     var define = require('amdefine')(module);
 }
 
-define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
+define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     "use strict";
     var gid = 0,
         //Behaviour Types
@@ -17,7 +17,11 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         WAIT = Symbol('wait'),
         //RETURN statuses
         SUCCESS = Symbol('success'),
-        FAIL = Symbol('failure');
+        FAIL = Symbol('failure'),
+        //PERSISTENCE types
+        SUCCESSPERSIST = Symbol('persist_until_success'),
+        FAILPERSIST = Symbol('persist_until_failure'),
+        PERSIST = Symbol('persist');
 
     //The internal failure error:
     var BTreeError = function(value){
@@ -37,6 +41,8 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.waitConditions = [];
         this.failConditions = [];
         this.persistConditions = [];
+        this.contextConditions = [];
+        this.priorityRules = [];
         //
         this.entryActions = [];
         this.performActions = [];//d=>console.log(`${this.name} default action`)];
@@ -63,85 +69,88 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.priority = v || 0;
     };
 
+    BTreeNodeAbstract.prototype.priorityRules = function(...rules){
+        if(rules.length === 0){
+            this.priorityRules = [];
+        }else{
+            rules.forEach(d=>this.priorityRules.push(d));
+        }        
+    };
+    
     BTreeNodeAbstract.prototype.specificity = function(s){
         this.specificity = s || 0;
     };
 
-    BTreeNodeAbstract.prototype.entryCondition = function(c){
-        if(c instanceof Array){
-            this.entryConditions = c;
+    BTreeNodeAbstract.prototype.entryCondition = function(...c){
+        if(c.length === 0){
+            this.entryConditions = [];
         }else{
-            this.entryConditions.push(c);
+            this.entryConditions = this.entryConditions.concat(c);
         }
     };
 
-    BTreeNodeAbstract.prototype.waitCondition = function(c){
-        if(c instanceof Array){
-            this.waitConditions = c;
+    BTreeNodeAbstract.prototype.waitCondition = function(...c){
+        if(c.length === 0){
+            this.waitConditions = [];
         }else{
-            this.waitConditions.push(c);
+            this.waitConditions = this.waitConditions.concat(c);
         }
     };
 
-    BTreeNodeAbstract.prototype.failCondition = function(e){
-        if(e instanceof Array){
-            this.failConditions = e;
+    BTreeNodeAbstract.prototype.failCondition = function(...e){
+        if(e.length === 0){
+            this.failConditions = [];
         }else{
-            this.failConditions.push(e);
+            this.failConditions = this.failConditions.concat(e);
         }
     };
 
-    BTreeNodeAbstract.prototype.persistCondition = function(p){
-        if(p instanceof Array){
-            this.persistConditions = p;
+    BTreeNodeAbstract.prototype.persistCondition = function(...p){
+        if(p.length === 0 ){
+            this.persistConditions = [];
         }else{
-            this.persistConditions.push(p);
+            this.persistConditions = this.persistConditions.concat(p);
         }
     };
     
-    BTreeNodeAbstract.prototype.entryAction = function(a){
-        if(a instanceof Array){
-            this.entryActions = a;
+    BTreeNodeAbstract.prototype.entryAction = function(...a){
+        if(a.length === 0){
+            this.entryActions = [];
         }else{
-            this.entryActions.push(a);
+            this.entryActions = this.entryActions.concat(a);
         }
     };
 
-    BTreeNodeAbstract.prototype.performAction = function(a){
-        if(a instanceof Array){
-            this.performActions = a;
+    BTreeNodeAbstract.prototype.performAction = function(...a){
+        if(a.length === 0){
+            this.performActions = [];
         }else{
-            this.performActions.push(a);
+            this.performActions = this.performActions.concat(a);
         }
     };
 
-    BTreeNodeAbstract.prototype.exitAction = function(a){
-        
-        if(a instanceof Array){
-            this.exitActions = a;
+    BTreeNodeAbstract.prototype.exitAction = function(...a){
+        if(a.length === 0){
+            this.exitActions = [];
         }else{
-            this.exitActions.push(a);
+            this.exitActions = this.exitActions.concat(a);
         }
     };
 
-    BTreeNodeAbstract.prototype.failAction = function(a){
-        if(a instanceof Array){
-            this.failActions = a;
+    BTreeNodeAbstract.prototype.failAction = function(...a){
+        if(a.length === 0){
+            this.failActions = [];
         }else{
-            this.failActions.push(a);
+            this.failActions = this.failActions.concat(a);
         }
     };
     
     BTreeNodeAbstract.prototype.children = function(...c){
         //console.log(`Concating children for ${this.name} :`, c);
-        if(c instanceof Array){
-            if(c.length === 0){
-                this.children = [];
-            }else{
-                this.children = this.children.concat(c);
-            }
+        if(c.length === 0){
+            this.children = [];
         }else{
-            this.children.push(c);
+            this.children = this.children.concat(c);
         }
     };
 
@@ -261,6 +270,9 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //console.log('informing parent of ',this.currentAbstract.name,status);
         this.bTreeRef.debug('update',`informing parent:`+status.toString());
         if(override === undefined && this.currentAbstract.persistent && this.bTreeRef.testConditions(this.currentAbstract.persistConditions)){
+            //if persistType == tillFail + status !== fail + persistConditions === true: repeat
+            //if persistType == tillSuccess + status !== success + persistConditions == true; repeat
+            //if persistType == default + persistConditions === true; repeat 
             this.bTreeRef.debug('update','resetting persistent');
             //reset the node:
             this.sequenceCounter = 0;
@@ -354,7 +366,16 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             throw new Error(`unrecognised actions type: ${actionsType}`);
         }
         this.bTreeRef.debug('actions',`Performing ${actionsType}: ${this.currentAbstract.name}`);
-        this.currentAbstract[actionsType].forEach(d=>d(this.bTreeRef,this));
+        try{
+            this.currentAbstract[actionsType].forEach(d=>d(this.bTreeRef,this));
+        }catch(error){
+            if(error instanceof BTreeError) { throw error; }
+            //throw the error with information about the action type,
+            //and behaviour name
+            let behaviourName = this.currentAbstract.name;
+            throw new Error(`${behaviourName} : ${actionsType} :: ${error.message}`);
+            
+        }
     };
 
     BTreeNodeReal.prototype.typeUpdate = function(){
@@ -459,17 +480,17 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         if(this.parent){
             delete this.parent.children[this.id];
         }
-        //remove the parent reference
-        this.parent = null;
-        //cleanup all children:
-        _.values(this.children).forEach(d=>d.cleanup(performPostActions));
-        this.children = {};
         //perform post actions
         if(performPostActions){
             this.finalActions();
         }else{
             this.failActions();
         }
+        //remove the parent reference
+        this.parent = null;
+        //cleanup all children:
+        _.values(this.children).forEach(d=>d.cleanup(performPostActions));
+        this.children = {};
     };
 
     /**
@@ -481,7 +502,6 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTreeNodeReal.prototype.addChild = function(childName){
         let abstracts = this.bTreeRef.getAbstracts(childName),
             i = 0,
-            current = abstracts[i],
             realBehaviour = new BTreeNodeReal(abstracts,{},this,this.bTreeRef);
         return this;
     };
@@ -498,10 +518,12 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             if(tempBindings[newKeys[i]] === undefined){
                 tempBindings[newKeys[i]] = bindingObject[newKeys[i]];
             }else if(tempBindings[newKeys[i]] !== bindingObject[newKeys[i]]){
+                this.bTreeRef.debug('binding',`failure for ${tempBindings[newKeys[i]]} : ${bindingObject[newKeys[i]]}`);
                 return false;
             }
         }
         this.bindings = tempBindings;
+        this.bTreeRef.debug('binding','success',this.bindings);
         return true;
     };
     
@@ -515,6 +537,10 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.btree = btree;
     };
 
+    BehaviourMonad.prototype.toArray = function(){
+        return Array.from(this.behaviours);
+    }
+    
     //Add further behaviours to the monad:
     BehaviourMonad.prototype.add = function(behaviours){
         if(behaviours instanceof BehaviourMonad){
@@ -567,6 +593,10 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     BehaviourMonad.prototype.persistCondition = function(...vars){
         return this.applyTo('persistCondition',vars);
+    };
+
+    BehaviourMonad.prototype.priorityRule = function(...vars){
+        return this.applyTo('priorityRule',vars);
     };
     
     BehaviourMonad.prototype.entryAction = function(...vars){
@@ -651,7 +681,12 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     BTree.prototype.debug = function(flag,...messages){
         if(this.debugFlags[flag]){
-            messages.forEach(d=>console.log(flag,d));
+            messages.forEach(d=>{
+                if(typeof d === 'function'){
+                    d = d()
+                }
+                console.log(flag,d);
+            });
         }
     }
     
@@ -725,8 +760,14 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTree.prototype.update = function(printChosenNode){
         //Sort the conflict set by priority, choose from the top 5 in the set
         //console.log("Conflict Set:",Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
-        this.debug('preConflictSet',Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
+        this.debug('preConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
+
+        //todo: run context conditions, deal with failures
         
+        /*
+          todo: calculate priorities based on priorityrules
+          forEach a in conflictSet, apply rules, aggregate values, then sort, then slice
+         */        
         let potentials = Array.from(this.conflictSet).sort((a,b)=>b.priority() - a.priority()).slice(0,this.conflictSetSelectionSize),
             chosenNode = _.sample(potentials);
         if(chosenNode){
@@ -734,7 +775,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             chosenNode.update();
         }
 
-        this.debug('postConflictSet',Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
+        this.debug('postConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
         this.debug('facts',this.fb.toStrings());
     };
 
@@ -764,6 +805,7 @@ define(['underscore','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
                 lastResult = this.fb.exists(currentTestStatement);
             }
             if(callingNode && typeof lastResult !== 'boolean'){
+                this.debug('binding',lastResult);
                 lastResult = callingNode.integrateBindings(lastResult);
             }
         }
