@@ -38,7 +38,21 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     var BTreeNodeAbstract = function(name){
         this.id = gid++;
         this.name = name || "anon";
+        //Behaviour parameters
         this.type =  SEQUENTIAL;
+        this.tags = new Set();
+        this.values = {}; //maxFailNum,minSuccessNum
+        this.priority = 0;
+        this.preference = 0;
+        this.persistent = false;
+        //whether context fails or succeeds the behaviour:
+        //default to fail
+        this.contextType = FAIL;
+        //Specificity isnt to be modified manually, but auto-calculated
+        this.specificity = 0;
+        //names to be reified, in order of execution type
+        this.subgoals = [];
+        
         //----------
         this.conditions = {};
         this.conditions.entry = [];
@@ -54,19 +68,6 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.actions.exit = [];
         this.actions.fail = [];
         //----------
-        //values.maxFailNum
-        //values.minSuccessNum
-        this.values = {};
-        this.priority = 0;
-        this.preference = 0;
-        this.persistent = false;
-        //whether context fails or succeeds the behaviour:
-        //default to fail
-        this.contextType = FAIL;
-        //Specificity isnt to be modified manually, but auto-calculated
-        this.specificity = 0;
-        //names to be reified, in order of execution type
-        this.subgoals = [];
     };
     BTreeNodeAbstract.constructor = BTreeNodeAbstract;
 
@@ -95,7 +96,7 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.priority = v || 0;
     };
 
-    BTreeNodeAbstract.prototype.priorityRules = function(...rules){
+    BTreeNodeAbstract.prototype.priorityCondition = function(...rules){
         if(rules.length === 0){
             this.conditions.priority = [];
         }else{
@@ -199,9 +200,24 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
 
     BTreeNodeAbstract.prototype.value = function(field,val){
-        this.values[field] = val;
+        if(val === undefined){
+            delete this.values[field];
+        }else{
+            this.values[field] = val;
+        }
     };
 
+    BTreeNodeAbstract.prototype.tag = function(tagName,deleteTag){
+        if(deleteTag){
+            this.bTreeRef.removeTag(tagName,this);
+            this.tags.delete(tagName);
+        }else{
+            this.bTreeRef.setTag(tagName,this);
+            this.tags.add(tagName);
+        }
+    };
+
+    
     BTreeNodeAbstract.prototype.type = function(typeString){
         if(typeString.match(/^seq/)){
             this.type = SEQUENTIAL;
@@ -669,8 +685,8 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         return this.applyTo('persistCondition',vars);
     };
 
-    BehaviourMonad.prototype.priorityRule = function(...vars){
-        return this.applyTo('priorityRule',vars);
+    BehaviourMonad.prototype.priorityCondition = function(...vars){
+        return this.applyTo('priorityCondition',vars);
     };
     
     BehaviourMonad.prototype.entryAction = function(...vars){
@@ -696,6 +712,10 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BehaviourMonad.prototype.value = function(...vars){
         return this.applyTo('value',vars);
     };
+
+    BehaviourMonad.prototype.tag = function(...vars){
+        return this.applyTo('tag',vars);
+    }
     
     //------------------------------------------------------------------------------
     /**
@@ -706,6 +726,8 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.debugFlags = {};
         //name -> [abstracts]
         this.behaviourLibrary = {};
+        //a Map of sets
+        this.behaviourTags = new Map();
         this.loadBehaviours(sharedAbstractLibrary);
         this.sortBehaviours();
         //id -> node
@@ -768,7 +790,25 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
                 console.log(flag,d);
             });
         }
-    }
+    };
+
+    BTree.prototype.setTag = function(tag,behaviour){
+        if(! this.tags.has(tag)){
+            this.tags.set(tag,new Set());
+        }
+        this.tags.get(tag).add(behaviour);
+    };
+
+    BTree.prototype.removeTag = function(tag,behaviour){
+        let tagSet = this.tags.get(tag);
+        if(tagSet){
+            tagSet.delete(behaviour);
+        }
+        if(tagSet.size === 0){
+            this.tags.delete(tag);
+        }        
+    };
+
     
     //utilities for assertion/retraction of facts
     BTree.prototype.assert = function(...values){
@@ -853,7 +893,8 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         /*
           TODO: calculate priorities based on priorityrules
           forEach a in conflictSet, apply rules, aggregate values, then sort, then slice
-         */        
+        */
+        
         let potentials = Array.from(this.conflictSet).sort((a,b)=>b.priority() - a.priority()).slice(0,this.conflictSetSelectionSize),
             chosenNode = _.sample(potentials);
         if(chosenNode){
