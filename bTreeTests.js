@@ -75,15 +75,15 @@ module.exports = {
             b2 = bTree.Behaviour('b1'),
             b3 = bTree.Behaviour('b1');
 
-        test.ok(b1.toArray()[0].specificity === 0);
-        test.ok(b2.toArray()[0].specificity === 0);
-        test.ok(b3.toArray()[0].specificity === 0);
-        b1.specificity(-1);
-        b2.specificity(10);
-        b3.specificity(5);
-        test.ok(b1.toArray()[0].specificity === -1);
-        test.ok(b2.toArray()[0].specificity === 10);
-        test.ok(b3.toArray()[0].specificity === 5);
+        test.ok(b1.toArray()[0].preference === 0);
+        test.ok(b2.toArray()[0].preference === 0);
+        test.ok(b3.toArray()[0].preference === 0);
+        b1.preference(-1);
+        b2.preference(10);
+        b3.preference(5);
+        test.ok(b1.toArray()[0].preference === -1);
+        test.ok(b2.toArray()[0].preference === 10);
+        test.ok(b3.toArray()[0].preference === 5);
         test.done();
     },
 
@@ -98,13 +98,13 @@ module.exports = {
         test.ok(Array.from(b2.behaviours)[0].specificity === 0);
         test.ok(Array.from(b3.behaviours)[0].specificity === 0);
         
-        b1.specificity(-1);
-        b2.specificity(10);
-        b3.specificity(5);
+        b1.preference(-1);
+        b2.preference(10);
+        b3.preference(5);
 
-        test.ok(Array.from(b1.behaviours)[0].specificity === -1);
-        test.ok(Array.from(b2.behaviours)[0].specificity === 10);
-        test.ok(Array.from(b3.behaviours)[0].specificity === 5);
+        test.ok(Array.from(b1.behaviours)[0].preference === -1);
+        test.ok(Array.from(b2.behaviours)[0].preference === 10);
+        test.ok(Array.from(b3.behaviours)[0].preference === 5);
 
         test.ok(group[0].id === Array.from(b1.behaviours)[0].id);
         test.ok(group[1].id === Array.from(b2.behaviours)[0].id);
@@ -144,11 +144,11 @@ module.exports = {
         //combine the two monads
         b1.add(b2);
         let behaviourArray = Array.from(b1.behaviours);
-        test.ok(behaviourArray[0].specificity === 0);
-        test.ok(behaviourArray[1].specificity === 0);
-        b1.specificity(5);
-        test.ok(behaviourArray[0].specificity === 5);
-        test.ok(behaviourArray[1].specificity === 5);
+        test.ok(behaviourArray[0].preference === 0);
+        test.ok(behaviourArray[1].preference === 0);
+        b1.preference(5);
+        test.ok(behaviourArray[0].preference === 5);
+        test.ok(behaviourArray[1].preference === 5);
         test.done();
     },
     
@@ -206,7 +206,7 @@ module.exports = {
             b2 = bTree.Behaviour('subBehaviour1'),
             b3 = bTree.Behaviour('subBehaviour2');
         b1.type('parallel')
-            .children('subBehaviour1','subBehaviour2');
+            .subgoal('subBehaviour1','subBehaviour2');
         b2.performAction(ctx=>performValA = 5);
         b3.performAction(ctx=>performValB = 10);
         bTree.root.addChild('testParallel');
@@ -252,13 +252,13 @@ module.exports = {
             referenceVal = 0,
             bTree = new BTree(),
             b1 = bTree.Behaviour('testPersistent');
-        
+
         b1.persistent(true)
             .persistCondition(".a.persistent.condition")
             .performAction(ctx=>testVal += 5);
         bTree.root.addChild('testPersistent');
         bTree.fb.assert(".a.persistent.condition");
-        test.ok(Array.from(b1.behaviours)[0].persistent === true);
+        test.ok(b1.toArray()[0].persistent === bTree.persistenceTypes.defaultPersistence);
         
         //run the btree repeatedly.
         //refence val and testval should increment together
@@ -285,10 +285,10 @@ module.exports = {
             bTree = new BTree(),
             b1 = bTree.Behaviour('testSpecificity'),
             b2 = bTree.Behaviour('testSpecificity');
-        b1.specificity(5)
+        b1.preference(5)
             .entryCondition(".this.will.fail")
             .performAction(ctx=>testVal = 5);
-        b2.specificity(2)
+        b2.preference(2)
             .performAction(ctx=>testVal = 10);
 
         bTree.root.addChild('testSpecificity');
@@ -305,11 +305,11 @@ module.exports = {
             bTree = new BTree(),
             b1 = bTree.Behaviour('testSpecificity'),
             b2 = bTree.Behaviour('testSpecificity');
-        b1.specificity(5)
+        b1.preference(5)
             .entryCondition(entryConditionString)
             .performAction(ctx=>testVal = 5)
             .persistent(true);
-        b2.specificity(2)
+        b2.preference(2)
             .performAction(ctx=>testVal = 10)
             .persistent(true);
         //first check the fallback:
@@ -411,11 +411,7 @@ module.exports = {
         
         bTree.Behaviour('test')
             .priority(0)
-        //.entryCondition(".this.is.a.test")
-        //.waitCondition(".this.is.another!test")
-        //.failCondition(".a.fail.test")
             .type("seq")
-        //.children("test2.p4, test3.p1")
             .entryAction(function(ctx){
                 testVal.push("test entry");
             })
@@ -428,8 +424,6 @@ module.exports = {
             .value('spec',5);
 
         bTree.Behaviour('test2')
-        //.entryCondition(".this.is.a.test")
-        //.waitCondition(".this.is.another.test")
             .entryAction(function(ctx){
                 testVal.push("test2 entry");
             })
@@ -480,7 +474,7 @@ module.exports = {
         bTree.Behaviour('topSequentialBehaviour')
             .type('sequential')
             .persistent(true)
-            .children('theSetup','theBody','theTearDown');
+            .subgoal('theSetup','theBody','theTearDown');
 
         bTree.Behaviour('theSetup')
             .performAction(a=>testVal = 100,a=>a.assert(".should.persist"));
@@ -543,7 +537,7 @@ module.exports = {
         
         bTree.Behaviour('parPriorTest')
             .type('parallel')
-            .children('p1','p2','p3');
+            .subgoal('p1','p2','p3');
 
         bTree.Behaviour('p1')
             .priority(1)
@@ -581,7 +575,7 @@ module.exports = {
             bTree = new BTree();
 
         bTree.Behaviour('testParent')
-            .children('testChild')
+            .subgoal('testChild')
             .performAction((c,n)=>parentVal = n);
 
         bTree.Behaviour('testChild')
@@ -607,12 +601,47 @@ module.exports = {
             .entryCondition('.this.is.one.test',
                             '.this.is.a.second.test');
         
-        test.ok(behaviour.toArray()[0].entryConditions.length === 2);
+        test.ok(behaviour.toArray()[0].conditions.entry.length === 2);
         behaviour.entryCondition('.this.is.a.third.test');
-        test.ok(behaviour.toArray()[0].entryConditions.length === 3);
+        test.ok(behaviour.toArray()[0].conditions.entry.length === 3);
         behaviour.entryCondition();
-        test.ok(behaviour.toArray()[0].entryCondition.length === 0);                
+        test.ok(behaviour.toArray()[0].conditions.entry.length === 0);                
         test.done();
     },
-        
+
+    binding_test : function(test){
+        let testVal = null,
+            bTree = new BTree();
+        bTree.Behaviour('testBindingBehaviour')
+            .entryCondition('.should.bind.%{x}')
+            .performAction((d,n)=>{
+                testVal = n.bindings.x;
+            });
+        test.ok(testVal === null);
+        bTree.assert('.should.bind.blah');
+        bTree.root.addChild('testBindingBehaviour');
+        //perform the binding behaviour
+        bTree.update();
+        test.ok(testVal === 'blah');        
+        test.done();
+    },
+
+    binding_number : function(test){
+        let testVal = null,
+            bTree = new BTree();
+        bTree.Behaviour('testBindingNum')
+            .entryCondition('.should.bind.%{x}')
+            .performAction((d,n)=>{
+                testVal = n.bindings.x;
+            });
+        bTree.assert(".should.bind.5");
+        bTree.root.addChild('testBindingNum');
+        test.ok(testVal === null);
+        bTree.update();
+        test.ok(Number(testVal) === 5);
+        testVal++;
+        test.ok(testVal === 6);
+        test.done();
+    },
+    
 };
