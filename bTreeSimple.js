@@ -23,6 +23,9 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         FAILPERSIST = Symbol('persist_until_failure'),
         PERSIST = Symbol('persist');
 
+    
+
+    
     //The internal failure error:
     var BTreeError = function(value){
         this.value = value;
@@ -37,32 +40,55 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.name = name || "anon";
         this.type =  SEQUENTIAL;
         //----------
-        this.entryConditions = [];
-        this.waitConditions = [];
-        this.failConditions = [];
-        this.persistConditions = [];
-        this.contextConditions = [];
-        this.priorityRules = [];
+        this.conditions = {};
+        this.conditions.entry = [];
+        this.conditions.wait = [];
+        this.conditions.fail = [];
+        this.conditions.persist = [];
+        this.conditions.context = [];
+        this.conditions.priority = [];
         //
-        this.entryActions = [];
-        this.performActions = [];//d=>console.log(`${this.name} default action`)];
-        this.exitActions = [];
-        this.failActions = [];
+        this.actions = {};
+        this.actions.entry = [];
+        this.actions.perform = [];
+        this.actions.exit = [];
+        this.actions.fail = [];
         //----------
         //values.maxFailNum
         //values.minSuccessNum
         this.values = {};
         this.priority = 0;
-        this.specificity = 0;
+        this.preference = 0;
         this.persistent = false;
+        //whether context fails or succeeds the behaviour:
+        //default to fail
+        this.contextType = FAIL;
+        //Specificity isnt to be modified manually, but auto-calculated
+        this.specificity = 0;
         //names to be reified, in order of execution type
-        this.children = [];
+        this.subgoals = [];
     };
     BTreeNodeAbstract.constructor = BTreeNodeAbstract;
 
+    BTreeNodeAbstract.prototype.calculateSpecificity = function(){
+        this.specificity = _.values(this.conditions).reduce(function(m,v){
+            return m + v.length;
+        },0);
+    };
+    
     //Setters / Clearers
     BTreeNodeAbstract.prototype.persistent = function(b){
-        this.persistent = b || false;
+        if(b === undefined || b === false){
+            this.persistent = false;
+        }else if(b === true){
+            this.persistent = PERSIST;
+        }else if(b.match(/success/)){
+            this.persistent = SUCCESSPERSIST;
+        }else if(b.match(/fail/)){
+            this.persistent = FAILPERSIST;
+        }else{
+            throw new Error('unrecognised persistence argument');
+        }
     };
     
     BTreeNodeAbstract.prototype.priority = function(v){
@@ -71,86 +97,104 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     BTreeNodeAbstract.prototype.priorityRules = function(...rules){
         if(rules.length === 0){
-            this.priorityRules = [];
+            this.conditions.priority = [];
         }else{
-            rules.forEach(d=>this.priorityRules.push(d));
+            this.conditions.priority = this.conditions.priority.concat(rules);
         }        
     };
+
+    //first element defines context type,
+    //default to fail context
+    BTreeNodeAbstract.prototype.contextCondition = function(...conditions){
+        if(conditions.length === 0){
+            this.conditions.context = [];
+        }else{
+            this.conditions.context = this.conditions.context.concat(conditions);
+        }
+    };
+
+    BTreeNodeAbstract.prototype.contextType = function(t){
+        if(t.match(/success/)){
+            this.contextType = SUCCESS;
+        }else{
+            this.contextType = FAIL;            
+        }
+    };
     
-    BTreeNodeAbstract.prototype.specificity = function(s){
-        this.specificity = s || 0;
+    BTreeNodeAbstract.prototype.preference = function(s){
+        this.preference = s || 0;
     };
 
     BTreeNodeAbstract.prototype.entryCondition = function(...c){
         if(c.length === 0){
-            this.entryConditions = [];
+            this.conditions.entry = [];
         }else{
-            this.entryConditions = this.entryConditions.concat(c);
+            this.conditions.entry = this.conditions.entry.concat(c);
         }
     };
 
     BTreeNodeAbstract.prototype.waitCondition = function(...c){
         if(c.length === 0){
-            this.waitConditions = [];
+            this.conditions.wait = [];
         }else{
-            this.waitConditions = this.waitConditions.concat(c);
+            this.conditions.wait = this.conditions.wait.concat(c);
         }
     };
 
     BTreeNodeAbstract.prototype.failCondition = function(...e){
         if(e.length === 0){
-            this.failConditions = [];
+            this.conditions.fail = [];
         }else{
-            this.failConditions = this.failConditions.concat(e);
+            this.conditions.fail = this.conditions.fail.concat(e);
         }
     };
 
     BTreeNodeAbstract.prototype.persistCondition = function(...p){
         if(p.length === 0 ){
-            this.persistConditions = [];
+            this.conditions.persist = [];
         }else{
-            this.persistConditions = this.persistConditions.concat(p);
+            this.conditions.persist = this.conditions.persist.concat(p);
         }
     };
     
     BTreeNodeAbstract.prototype.entryAction = function(...a){
         if(a.length === 0){
-            this.entryActions = [];
+            this.actions.entry = [];
         }else{
-            this.entryActions = this.entryActions.concat(a);
+            this.actions.entry = this.actions.entry.concat(a);
         }
     };
 
     BTreeNodeAbstract.prototype.performAction = function(...a){
         if(a.length === 0){
-            this.performActions = [];
+            this.actions.perform = [];
         }else{
-            this.performActions = this.performActions.concat(a);
+            this.actions.perform = this.actions.perform.concat(a);
         }
     };
 
     BTreeNodeAbstract.prototype.exitAction = function(...a){
         if(a.length === 0){
-            this.exitActions = [];
+            this.actions.exit = [];
         }else{
-            this.exitActions = this.exitActions.concat(a);
+            this.actions.exit = this.actions.exit.concat(a);
         }
     };
 
     BTreeNodeAbstract.prototype.failAction = function(...a){
         if(a.length === 0){
-            this.failActions = [];
+            this.actions.fail = [];
         }else{
-            this.failActions = this.failActions.concat(a);
+            this.actions.fail = this.actions.fail.concat(a);
         }
     };
     
-    BTreeNodeAbstract.prototype.children = function(...c){
+    BTreeNodeAbstract.prototype.subgoal = function(...c){
         //console.log(`Concating children for ${this.name} :`, c);
         if(c.length === 0){
-            this.children = [];
+            this.subgoals = [];
         }else{
-            this.children = this.children.concat(c);
+            this.subgoals = this.subgoals.concat(c);
         }
     };
 
@@ -214,6 +258,11 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             this.parent.children[this.id] = this;
         }
         this.bTreeRef.conflictSet.add(this);
+        //register context conditions:
+        if(this.currentAbstract && this.currentAbstract.conditions.context.length > 0){
+            this.bTreeRef.contextConditions.set(this,this.currentAbstract.conditions.context);
+        }
+        
     };
     BTreeNodeReal.constructor = BTreeNodeReal;
 
@@ -266,28 +315,47 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         }
     };
 
+    /**
+       inform a node's parent of success or failure,
+       also can trigger persistence
+       @param status the completion status of the node
+       @param override shortcuts infinite looping within inform parent persistence
+     */
     BTreeNodeReal.prototype.informParent = function(status,override){
         //console.log('informing parent of ',this.currentAbstract.name,status);
         this.bTreeRef.debug('update',`informing parent:`+status.toString());
-        if(override === undefined && this.currentAbstract.persistent && this.bTreeRef.testConditions(this.currentAbstract.persistConditions)){
-            //if persistType == tillFail + status !== fail + persistConditions === true: repeat
-            //if persistType == tillSuccess + status !== success + persistConditions == true; repeat
-            //if persistType == default + persistConditions === true; repeat 
+        //if this inform isnt being called from inside an inform
+        if(override === undefined && this.currentAbstract.persistent !== false){
             this.bTreeRef.debug('update','resetting persistent');
-            //reset the node:
-            this.sequenceCounter = 0;
-            this.parallelFailureCounter = 0;
-            this.parallelSuccessCounter = 0;
-            this.performed = false;
-            //reset the specificity:
-            try {
-                this.findSpecificity(true);
-                //add self back to the conflict set for next turn:
-                this.bTreeRef.conflictSet.add(this);
-            }catch(error){
-                if(!(error instanceof BTreeError)){ throw error; }
-                this.bTreeRef.debug('failure',error);
-                this.informParent(FAIL,true);
+            let persist = false;
+            //see if the node should persist:
+            if(this.currentAbstract.persistent === SUCCESSPERSIST && status !== SUCCESS && this.bTreeRef.testConditions(this.currentAbstract.condition.persist)){
+                persist = true;
+            }else if(this.currentAbstract.persistent === FAILPERSIST && status !== FAIL && this.bTreeRef.testConditions(this.currentAbstract.condition.persist)){
+                persist = true;
+            }else if(this.currentAbstract.persistent === PERSIST && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist)){
+                persist = true;
+            }
+            //----
+            if(persist){
+                //reset the node:
+                this.sequenceCounter = 0;
+                this.parallelFailureCounter = 0;
+                this.parallelSuccessCounter = 0;
+                this.performed = false;
+                //reset the specificity:
+                try {
+                    this.findSpecificity(true);
+                    //add self back to the conflict set for next turn:
+                    this.bTreeRef.conflictSet.add(this);
+                }catch(error){
+                    if(!(error instanceof BTreeError)){ throw error; }
+                    this.bTreeRef.debug('failure',error);
+                    this.informParent(FAIL,true);
+                }
+            }else{
+                //override to clean up normally
+                this.informParent(status,true);
             }
         }else if(this.parent){
             this.parent.inform(this.id,status);
@@ -305,13 +373,13 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.currentAbstract = this.abstractNodes[i];
         //get an applicable specificity, if you are dealing with an actual abstract based node
         if(this.abstractNodes.length > 0){
-            while(this.currentAbstract && !this.bTreeRef.testConditions(this.currentAbstract.entryConditions,this)){
+            while(this.currentAbstract && !this.bTreeRef.testConditions(this.currentAbstract.conditions.entry,this)){
                 this.currentAbstract = this.abstractNodes[++i];
             }
             if(this.currentAbstract && !persistentEntry){
                 //perform the entry actions of the initial successful abstract:
                 //a real node will only be created if the entry conditions of the specificity pass
-                this.runActions('entryActions');
+                this.runActions('entry');
             }else if(this.currentAbstract === undefined){
                 throw new BTreeError(`No suitable abstract for node: ${this.abstractNodes[0].name}`);
             }
@@ -332,7 +400,7 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
                 return;
             }
             if(this.performed !== true){
-                this.runActions('performActions');
+                this.runActions('perform');
                 this.performed = true;
             }else{
                 console.log('not running perform actions');
@@ -348,33 +416,32 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
 
     BTreeNodeReal.prototype.shouldFail = function(){
-        if(this.currentAbstract.failConditions.length > 0){
-            return this.bTreeRef.testConditions(this.currentAbstract.failConditions);
+        if(this.currentAbstract.conditions.fail.length > 0){
+            return this.bTreeRef.testConditions(this.currentAbstract.conditions.fail);
         }
         return false;
     };
 
     BTreeNodeReal.prototype.shouldWait = function(){
-        if(this.currentAbstract.waitConditions.length > 0){
-            return this.bTreeRef.testConditions(this.currentAbstract.waitConditions);
+        if(this.currentAbstract.conditions.wait.length > 0){
+            return this.bTreeRef.testConditions(this.currentAbstract.conditions.wait);
         }
         return false;
     };
     
     BTreeNodeReal.prototype.runActions = function(actionsType){
-        if(this.currentAbstract[actionsType] === undefined){
+        if(this.currentAbstract.actions[actionsType] === undefined){
             throw new Error(`unrecognised actions type: ${actionsType}`);
         }
         this.bTreeRef.debug('actions',`Performing ${actionsType}: ${this.currentAbstract.name}`);
         try{
-            this.currentAbstract[actionsType].forEach(d=>d(this.bTreeRef,this));
+            this.currentAbstract.actions[actionsType].forEach(d=>d(this.bTreeRef,this));
         }catch(error){
             if(error instanceof BTreeError) { throw error; }
             //throw the error with information about the action type,
             //and behaviour name
             let behaviourName = this.currentAbstract.name;
             throw new Error(`${behaviourName} : ${actionsType} :: ${error.message}`);
-            
         }
     };
 
@@ -389,11 +456,11 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     };
 
     BTreeNodeReal.prototype.finalActions = function(){
-        this.runActions('exitActions');
+        this.runActions('exit');
     };
 
     BTreeNodeReal.prototype.failActions = function(){
-        this.runActions('failActions');
+        this.runActions('fail');
     };
     
     /**
@@ -402,7 +469,7 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     */
     BTreeNodeReal.prototype.SEQUENTIAL_update = function(){
         this.bTreeRef.debug('update',`Sequential Update ${this.currentAbstract.name}`);
-        let nextBehaviourName = this.currentAbstract.children[this.sequenceCounter];
+        let nextBehaviourName = this.currentAbstract.subgoals[this.sequenceCounter];
         if(nextBehaviourName !== undefined){
             this.addChild(nextBehaviourName);
         }else {
@@ -417,7 +484,7 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTreeNodeReal.prototype.CHOICE_update = function(){
         this.bTreeRef.debug('update',`choice update ${this.currentAbstract.name}`);
         if(!this.selectedChoice){
-            let potentialChildren = _.shuffle(Array.from(this.currentAbstract.children));
+            let potentialChildren = _.shuffle(Array.from(this.currentAbstract.subgoals));
             //get a choice, try to add it
             while(_.keys(this.children).length === 0 && potentialChildren.length > 0){
                 let selectedChild = potentialChildren.shift();
@@ -438,11 +505,10 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     */
     BTreeNodeReal.prototype.PARALLEL_update = function(){
         this.bTreeRef.debug('update',`parallel update ${this.currentAbstract.name}`);
-        //console.log('parallel update');
         //if children havent been added, do that
         if(!this.hasAddedParallelChildren && _.keys(this.children).length === 0 && this.currentAbstract){
             //add all children            
-            this.currentAbstract.children.map(d=>{
+            this.currentAbstract.subgoals.map(d=>{
                 try{
                     this.addChild(d);
                 }catch(error){
@@ -461,11 +527,10 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             throw new BTreeError('parallel behaviour failure2');
         }
         
-        
         //if enough successes have occured, succeed the node, cleaning up the children
         if(this.currentAbstract && this.currentAbstract.values.minSuccessNum && this.currentAbstract.values.minSuccessNum <= this.parallelSuccessCounter){
             this.informParent(SUCCESS);
-        }else if(this.currentAbstract && this.currentAbstract.children.length <= this.parallelSuccessCounter){
+        }else if(this.currentAbstract && this.currentAbstract.subgoals.length <= this.parallelSuccessCounter){
             this.informParent(SUCCESS);
         }
     };
@@ -473,18 +538,19 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     //Cleanup:
     BTreeNodeReal.prototype.cleanup = function(performPostActions){
         this.bTreeRef.debug('cleanup',`Cleaning ${this.currentAbstract.name}`);
-        //console.log("cleaning up: ",this.currentAbstract.name);
         //remove self from the conflict set 
         this.bTreeRef.conflictSet.delete(this);
-        //remove self from the parent
-        if(this.parent){
-            delete this.parent.children[this.id];
-        }
+        //remove context conditions
+        this.bTreeRef.contextConditions.delete(this);
         //perform post actions
         if(performPostActions){
             this.finalActions();
         }else{
             this.failActions();
+        }
+        //remove self from the parent
+        if(this.parent){
+            delete this.parent.children[this.id];
         }
         //remove the parent reference
         this.parent = null;
@@ -563,12 +629,20 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         return this;
     };
 
+    BehaviourMonad.prototype.contextCondition = function(...vars){
+        return this.applyTo('contextCondition',vars);
+    };
+
+    BehaviourMonad.prototype.contextType = function(...vars){
+        return this.applyTo('contextType',vars);
+    };
+        
     BehaviourMonad.prototype.persistent = function(...vars){
         return this.applyTo('persistent',vars);
     };
     
-    BehaviourMonad.prototype.specificity = function(...vars){
-        return this.applyTo('specificity',vars);
+    BehaviourMonad.prototype.preference = function(...vars){
+        return this.applyTo('preference',vars);
     };
     
     BehaviourMonad.prototype.priority = function(...vars){
@@ -615,8 +689,8 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         return this.applyTo('failAction',vars);
     };
     
-    BehaviourMonad.prototype.children = function(...vars){
-        return this.applyTo('children',vars);
+    BehaviourMonad.prototype.subgoal = function(...vars){
+        return this.applyTo('subgoal',vars);
     };
 
     BehaviourMonad.prototype.value = function(...vars){
@@ -640,6 +714,10 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         this.conflictSet = new Set();
         //the top n entries in the priority organised conflict set to select an action from
         this.conflictSetSelectionSize = 5;
+        //The registered context conditions to run every turn
+        //an object of pairs indexed by id: [node,conditions];
+        this.contextConditions = new Map();
+        
         //root of the working tree: no abstract, spec, values, or parent. 
         this.root = new BTreeNodeReal(this.getAbstracts('initialTree'),undefined,undefined,this);
         this.root.type = PARALLEL;
@@ -663,9 +741,11 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
             'parallel' : PARALLEL,
             'choice' : CHOICE
         };
-
-
-        
+        this.persistenceTypes = {
+            'successPersistence' : SUCCESSPERSIST,
+            'failurePersistence' : FAILPERSIST,
+            'defaultPersistence' : PERSIST
+        };
     };
     BTree.constructor = BTree;
 
@@ -753,7 +833,7 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         }        
         return new BehaviourMonad([newBeh],this);
     };
-    
+
     /**
        The main update method, steps the btree forward
     */
@@ -762,10 +842,16 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
         //console.log("Conflict Set:",Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
         this.debug('preConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
 
-        //todo: run context conditions, deal with failures
+        //run context conditions, deal with failures
+        this.contextConditions.forEach((conds,node)=>{
+            if(!this.testConditions(conds)){
+                //let status = this.contextType === SUCCESSCONTEXT ? SUCCESSCONTEXT : FAILCONTEXT;
+                node.informParent(this.contextType);
+            }
+        });
         
         /*
-          todo: calculate priorities based on priorityrules
+          TODO: calculate priorities based on priorityrules
           forEach a in conflictSet, apply rules, aggregate values, then sort, then slice
          */        
         let potentials = Array.from(this.conflictSet).sort((a,b)=>b.priority() - a.priority()).slice(0,this.conflictSetSelectionSize),
@@ -816,12 +902,13 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
 
     /**
        sortBehaviours
-       Sort abstract behaviours by their specificity, hight to low
+       Sort abstract behaviours by their specificity and preference, hight to low
     */
     BTree.prototype.sortBehaviours = function(){
         _.values(this.behaviourLibrary).forEach(function(d){
+            d.forEach(e=>e.calculateSpecificity());
             d.sort(function(a,b){
-                return b.specificity - a.specificity;
+                return b.preference - a.preference;
             });
         });
     };
