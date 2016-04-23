@@ -1,16 +1,5 @@
-* Btree and Subsumption Test
-** TODO Btree
-*** DONE Structure
-**** DONE Abstract Node
-Definitions of behaviours, prior to being added to the tree
-**** DONE Reified Node
-Actual working tree nodes, that use a particular specificity of a behaviour
-**** DONE Root Node
-defaults to assuming an initial tree
-**** DONE Branch Nodes
-**** DONE Leaf Nodes
-No different from other nodes, just without children, will execute actions then complete
-*** TODO Semantics
+* Btree
+** TODO Semantics
 **** DONE Working Tree
 Based on the root node, nothing particularly special
 **** DONE Conflict Set
@@ -24,16 +13,17 @@ Progress sequentially through the list of children,
 if one fails, the sequential behaviour itself fails
 ***** DONE Parallel
 ***** DONE Choice
-**** Conditions
+**** DONE Conditions
 ***** DONE Entry
 ***** DONE Wait
 ***** DONE Exit
 ***** DONE Failure
-***** TODO Continual
 ***** DONE Binding
 ****** DONE bind string creation to the Real Node
 ****** DONE % operator in exclusion logic
-****** TODO integrate bindings in tests
+****** DONE integrate bindings in unit tests
+****** DONE check binding numbers can work
+****** TODO check binding from options
 **** DONE Update Step
 Now selects from the top n based on priority from the conflict set.
 **** DONE Persistence
@@ -42,8 +32,32 @@ and a persist check in the cleanup routine. Guarding against infinite loops
 of cleanup -> parent inform -> cleanup by removing from parent's children first,
 then re-adding.
 ***** DONE Persistence looping re-add to conflict set
-**** Unit Tests
-**** TODO Flesh out the README
+**** DONE refactor names.
+children -> subgoals etc
+**** DONE test parent node of an instance node
+**** DONE test specification of multiple tests/parameters to behaviours
+at the moment array application of parameters is a bit wonky.
+**** DONE wrap action in try catch block for easier diagnosing of failures
+**** DONE Auto-infer specificity based on sum conditions
+**** DONE add persistence until success / failure?
+or does the persist condition fulfill that? no.
+three types:
+persist while conditions succeed,
+persist until behaviour succeeds
+persist until behaviour fails 
+
+**** DONE add context conditions
+context conditions of a behaviour should be registered to be checked each update cycle
+**** DONE Context conditions
+***** DONE success context
+***** DONE fail context
+**** DONE Switch current specificity to manual 'preference'
+**** DONE auto calculate specificity
+**** DONE add tags to behaviours
+**** DONE let priority be weighted rules
+priority should be a combination of numbers, and test strings that give success/failure weights
+ie:.bob.friends.bill#5/-2  ---- if bob is friends with bill, +5 to priority, else -2 to priority
+**** TODO preference supersedes specificity
 **** TODO Rewrite the update loop
 should separate update loop into distinct sections:
 	* Select from Conflict Set
@@ -53,26 +67,18 @@ should separate update loop into distinct sections:
     * Perform Type Updates
     * Add new nodes
     * bubble up success / failure
-**** TODO add context conditions
-context conditions of a behaviour should be registered to be checked each update cycle
-**** TODO let priority be weighted rules
-priority should be a combination of numbers, and test strings that give success/failure weights
-ie:.bob.friends.bill#5/-2  ---- if bob is friends with bill, +5 to priority, else -2 to priority
 **** TODO decide on persistent/entry condition/action interaction
      persistence tests entryconditions, but doesnt re-fire entry actions,
 i'm using entry conditions to select specificity, so what would be preferable here?
-**** TODO refactor names.
-children -> subgoals etc
-**** TODO add persistence until success / failure?
-or does the persist condition fulfill that? no.
-three types:
-persist while conditions succeed,
-persist until behaviour succeeds
-persist until behaviour fails 
-**** DONE test parent node of an instance node
-**** DONE test specification of multiple tests/parameters to behaviours
-at the moment array application of parameters is a bit wonky.
-**** DONE wrap action in try catch block for easier diagnosing of failures
-**** TODO Auto-infer specificity based on sum conditions
-**** TODO Switch current specificity to manual 'preference' that supersedes specificity
-
+*** DONE Structure
+**** DONE Abstract Node
+Definitions of behaviours, prior to being added to the tree
+**** DONE Reified Node
+Actual working tree nodes, that use a particular specificity of a behaviour
+**** DONE Root Node
+defaults to assuming an initial tree
+**** DONE Branch Nodes
+**** DONE Leaf Nodes
+No different from other nodes, just without children, will execute actions then complete
+*** Unit Tests
+*** TODO Flesh out the README
