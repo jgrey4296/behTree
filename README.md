@@ -159,6 +159,16 @@ The Exclusion Logic Language allows for binding of values, locally to the instan
         .performAction((bt,n)=>console.log(`${bt.values.name} has a ${n.bindings.x}`));
 ```
 
+##### Priority Conditions
+Priority conditions define modifiers to behaviours' priority value, which is used for selecting 
+which behaviour to execute at any particular time from the conflict set.
+This makes use of value return from Exclusion logic:
+```
+    bTree.Behaviour('anotherTestBehaviour')
+        .priorityCondition(".kitchen.bob^2/-4");
+```
+Will increase the priority of anotherTestBehaviour if bob is in the kitchen, if he isn't, the priority of the behaviour will decrease by 4.
+
 #### Actions
 Actions are specified in a similar way to conditions, take the same parameters (the `bTree` instance and the current `node` on the working tree). 
 The defined action points are:
