@@ -644,4 +644,34 @@ module.exports = {
         test.done();
     },
     
+    priorityCondition_eval_test : function(test){
+        let testVal = null,
+            bTree = new BTree();
+
+        bTree.Behaviour('testParallel')
+            .type('parallel')
+            .subgoal('shouldRunFirst','shouldRunSecond');
+
+        bTree.Behaviour('shouldRunFirst')
+            .priorityCondition(".this.should.trigger#10/0")
+            .performAction(d=>testVal = "first");                
+
+        bTree.Behaviour('shouldRunSecond')
+            .priorityCondition(".this.should.trigger.less#2/0")
+            .performAction(d=>testVal = "second");
+
+        bTree.assert(".this.should.trigger.less");
+        bTree.root.addChild("testParallel");
+        //update to add the two sub behaviours
+        bTree.update();
+        //update to fire the first
+        bTree.update();
+        test.ok(testVal === "first");
+        //update to fire the second
+        bTree.update();
+        test.ok(testVal === "second");        
+        test.done();
+    },
+    
+
 };

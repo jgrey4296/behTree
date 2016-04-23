@@ -3,7 +3,7 @@ if(typeof define !== 'function'){
     var define = require('amdefine')(module);
 }
 
-define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
+define(['lodash','../exclusionLogic/ExclusionFactBase','../priorityQueue/priorityQueue'],function(_,ExFB,PriorityQueue){
     "use strict";
     var gid = 0,
         //Behaviour Types
@@ -283,7 +283,28 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
     BTreeNodeReal.constructor = BTreeNodeReal;
 
     BTreeNodeReal.prototype.priority = function(){
-        return this.currentAbstract !== undefined ? this.currentAbstract.priority : 0;
+        //calculate all the priority conditions, sum them up, using the base priority to start:
+        let bTreeRef = this.bTreeRef,
+            currentNode = this,
+            sumPriority;
+        try {
+            sumPriority = this.currentAbstract.conditions.priority.reduce(function(m,v){
+                if(typeof v === 'function'){
+                    v = v(bTreeRef,currentNode);
+                }
+                if(typeof v === 'string'){
+                    v = Number(bTreeRef.fb.exists(v));
+                }
+                if(!isNaN(v)){
+                    return m + v;
+                }else{
+                    throw new Error("bad priority rule");
+                }
+            },this.currentAbstract.priority);
+        }catch(error){
+            sumPriority = this.currentAbstract.priority;
+        }        
+        return sumPriority;
     };
 
     
@@ -894,16 +915,23 @@ define(['lodash','../exclusionLogic/ExclusionFactBase'],function(_,ExFB){
           TODO: calculate priorities based on priorityrules
           forEach a in conflictSet, apply rules, aggregate values, then sort, then slice
         */
-        
-        let potentials = Array.from(this.conflictSet).sort((a,b)=>b.priority() - a.priority()).slice(0,this.conflictSetSelectionSize),
-            chosenNode = _.sample(potentials);
+        let conflictPriorityQueue = new PriorityQueue(true),
+            potentials = [],//maximise
+            chosenNode;
+        //calculate each behaviour, add it into the priority queue:
+        this.conflictSet.forEach(d=>conflictPriorityQueue.insert(d,d.priority()));
+
+        for(let i = this.conflictSetSelectionSize; i > 0 && !conflictPriorityQueue.empty(); i--){
+            potentials.push(conflictPriorityQueue.next());
+        }
+                
+        chosenNode = _.sample(potentials);
         if(chosenNode){
-            //console.log('updating:', chosenNode.currentAbstract.name);
             chosenNode.update();
         }
 
         this.debug('postConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
-        this.debug('facts',this.fb.toStrings());
+        this.debug('facts',d=>this.fb.toStrings());
     };
 
     /**
