@@ -14,6 +14,9 @@
     bTree.update();
 ```
 
+[Example project](https://github.com/jgrey4296/aiOnHexBoard)
+
+
 ## Production usage:
 modify the bTreeSimple dependencies of the `exclusionFactBase` and `priorityQueue` to correct paths.
     
