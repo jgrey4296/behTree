@@ -78,7 +78,7 @@ Define behaviours in modules as arrays of defining functions, then load with `lo
 
 ### 'Character' Creation
 From a template behaviour tree, you can create character instances using `newCharacter`,
-which shares the same fact base, and behaviour definitions:
+which shares the same fact base, and behaviour definitions, but private values:
 ```
     let bTree = new BTree(),
         bob = bTree.newCharacter({
@@ -93,15 +93,60 @@ Behaviours have values, tags, actions, and conditions that can be set:
 Custom values and tags can be set with `.value(key,value)` and `.tag(tagName,deleteTag?)`. 
 Such custom values and tags can be accessed in conditions and actions (see below).  
 
-There are also predefined values and parameters:
-- `type` : can be "sequential", "parallel", "choice",
-- `priority` : a number
-- `preference` : a number
-- `persistent` : `true` | `false` | "success" | "fail"
-- `contextType` : "success" | "fail"
-- `subgoal` : strings
+There are also predefined values and parameter method setters:
+- `.type(val)` : can be "sequential", "parallel", "choice",
+- `.priority(val)` : a number
+- `.preference(val)` : a number
+- `.persistent(val)` : `true` | `false` | "success" | "fail"
+- `.contextType(va)` : "success" | "fail"
+- `.subgoal(...vals)` : strings
 
 #### Conditions
+Conditions are specified in three forms: Boolean Functions, ExclusionLogic Strings, and Functions returning
+Exclusion Logic Strings. The functions take two parameters: the `bTree` instance, and the `currentNode` instance of the tree.  
+
+1. Boolean functions
+```
+    bTree.Behaviour('myTestConditionBehaviour')
+        .entryCondition((bt,n)=>bt.values.name === 'bob');
+```
+
+2. Exclusion Logic Strings:
+```
+    bTree.Behaviour('myTestStringBehaviour')
+        .entryCondition('.characters.bob');
+```
+3. Exclusion Logic Functions:
+```
+    bTree.Behaviour('myTestExLoStringBehaviour')
+        .entryCondition((c,n)=>`.${c.values.name}.location.kitchen`);
+```
+
+There are a number of conditions that can be tested for, set using the following methods:
+- `.entryCondition()` : Tested upon an attempt to instantiate the behaviour.
+- `.waitCondition()` : Tests whether the node should wait before executing
+- `.failCondition()` : Tests whether the node should fail (at performance time)
+- `.persistCondition()` : Tests whether the node should reset and stay on the active tree when it completes
+- `.contextCondition()` : Tested every bTree update cycle, can fail the behaviour without focus on it
+- `.priorityCondition()` : Tested to determine conflict set priority
+
+You can specify conditions in one call or multiple:
+```
+    //will test for all three
+    b1.entryCondition(".character.bob",".character.bill")
+        .entryCondition(".character.jill");
+```
+And you can clear by calling with nothing:
+```
+    b1.entryCondition();
+```
 
 #### Actions
+Actions are specified in a similar way to conditions, take the same parameters (the `bTree` instance and the current `node` on the working tree). 
+The defined action points are:
+- `.entryAction()` : 
+- `.performAction()` : 
+- `.exitAction()` : 
+- `.failAction()` : 
+
 
