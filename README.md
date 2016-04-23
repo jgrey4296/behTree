@@ -82,8 +82,18 @@ which shares the same fact base, and behaviour definitions, but private values:
 ```
     let bTree = new BTree(),
         bob = bTree.newCharacter({
-            name : "bob"
+            name : "bob",
+            age : 23
+            
+        })
+        bill = bTree.newCharacter({
+            name : "bill":
+            age : 40
         });
+```
+Above, `bob.values.age` === 23, `bill.values.age` === 40. In conditions and actions:
+```
+    .entryAction((bt,n)=>console.log(`${bt.values.name} is ${bt.values.age} years old`));
 ```
 
 ### Behaviour Parameters
@@ -139,6 +149,14 @@ You can specify conditions in one call or multiple:
 And you can clear by calling with nothing:
 ```
     b1.entryCondition();
+```
+
+##### Condition binding:
+The Exclusion Logic Language allows for binding of values, locally to the instanced behaviour node:
+```
+    bTree.Behaviour('test')
+        .entryCondition(bt=>`.${bt.values.name}.items.%1{x}`)
+        .performAction((bt,n)=>console.log(`${bt.values.name} has a ${n.bindings.x}`));
 ```
 
 #### Actions
