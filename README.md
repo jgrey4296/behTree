@@ -118,18 +118,18 @@ There are also predefined values and parameter method setters:
 Conditions are specified in three forms: Boolean Functions, ExclusionLogic Strings, and Functions returning
 Exclusion Logic Strings. The functions take two parameters: the `bTree` instance, and the `currentNode` instance of the tree.  
 
-1. Boolean functions
+1. Boolean functions:  
    ```
        bTree.Behaviour('myTestConditionBehaviour')
         .entryCondition((bt,n)=>bt.values.name === 'bob');
     ```
 
-2. Exclusion Logic Strings:
+2. Exclusion Logic Strings:  
    ```
        bTree.Behaviour('myTestStringBehaviour')
            .entryCondition('.characters.bob');
    ```
-3. Exclusion Logic Functions:
+3. Exclusion Logic Functions:  
    ```
        bTree.Behaviour('myTestExLoStringBehaviour')
            .entryCondition((c,n)=>`.${c.values.name}.location.kitchen`);
