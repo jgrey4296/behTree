@@ -133,7 +133,7 @@ Exclusion Logic Strings. The functions take two parameters: the `bTree` instance
    ```
        bTree.Behaviour('myTestExLoStringBehaviour')
            .entryCondition((c,n)=>`.${c.values.name}.location.kitchen`);
-       ```
+   ```
 
 There are a number of conditions that can be tested for, set using the following methods:
 - `.entryCondition()` : Tested upon an attempt to instantiate the behaviour.
