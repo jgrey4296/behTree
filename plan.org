@@ -6,7 +6,7 @@ Based on the root node, nothing particularly special
 Maintained automatically as nodes are created or failed.
 Addition to the conflict set takes place in the BTreeNodeReal constructor
 Removal occurs in BTreeNodeReal cleanup
-***** TODO Implement conflict set as a heap?
+***** DONE Implement conflict set as a heap?
 **** DONE Node Type: Sequential / Parallel / Choice
 ***** DONE Sequential
 Progress sequentially through the list of children, 
@@ -48,9 +48,10 @@ persist until behaviour fails
 
 **** DONE add context conditions
 context conditions of a behaviour should be registered to be checked each update cycle
-**** DONE Context conditions
+**** TODO Context conditions
 ***** DONE success context
 ***** DONE fail context
+***** TODO test success/fail context conditions
 **** DONE Switch current specificity to manual 'preference'
 **** DONE auto calculate specificity
 **** DONE add tags to behaviours
@@ -82,3 +83,6 @@ defaults to assuming an initial tree
 No different from other nodes, just without children, will execute actions then complete
 *** Unit Tests
 *** TODO Flesh out the README
+*** TODO Static testing?
+it would be a good idea to be able to run a sanity check on the behaviours,
+making sure at the very least all subgoals exist
