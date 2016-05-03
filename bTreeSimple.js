@@ -551,7 +551,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
                 }catch(error){
                     if(!(error instanceof BTreeError)){ throw error; }                   
                     //if a behaviour fails to even add, increment the counter
-                    this.bTreeRef('failure',error);
+                    this.bTreeRef.debug('failure',error);
                     this.parallelFailureCounter++;
                 }});
             this.hasAddedParallelChildren = true;

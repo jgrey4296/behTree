@@ -15,10 +15,13 @@ let characters = [],
     turns = 10,
     currentTurn = 0;
 
+//turn on debug flags:
+bob.setDebugFlags('failure');
+
 //assert initial facts:
-baseBTree.assert(".locations.kitchen",".locations.study",".locations.diningRoom",
+baseBTree.fb.parse([".locations.kitchen",".locations.study",".locations.diningRoom",
                  ".locations.kitchen.items.knife",".locations.diningRoom.items.spoon",
-                 ".bob.location!kitchen",".bill.location!kitchen");
+                 ".bob.location!kitchen",".bill.location!kitchen"]);
 
 //Load the characters:
 characters.push(bob,bill);

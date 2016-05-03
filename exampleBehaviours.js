@@ -14,13 +14,13 @@ define(['underscore'],function(_){
         bTree.Behaviour('initialTree')
             .type('parallel')
             .persistent(true)
-            .children('move');
+            .subgoal('move');
     });
 
     //Test non-specific move
     BMod.push(function(bTree){
         bTree.Behaviour('move')
-            .entryCondition([`.locations.%{x}`,(d,n)=>`!!.${d.values.name}.location!${n.bindings.x}`])
+            .entryCondition(`.locations.[1]->x?`,(d,n)=>`!!.${d.values.name}.location!${n.bindings.x}?`)
             .performAction((ctx,n)=>{
                 ctx.assert(`.${ctx.values.name}.location!${n.bindings.x}`);
                 console.log(`Moving ${ctx.values.name} to ${n.bindings.x}`);
