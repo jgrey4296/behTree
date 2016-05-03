@@ -3,7 +3,7 @@ if(typeof define !== 'function'){
     var define = require('amdefine')(module);
 }
 
-define(['lodash','../exclusionLogic/old/ExclusionFactBase','../priorityQueue/priorityQueue'],function(_,ExFB,PriorityQueue){
+define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQueue'],function(_,ExFB,PriorityQueue){
     "use strict";
     var gid = 0,
         //Behaviour Types
@@ -293,7 +293,7 @@ define(['lodash','../exclusionLogic/old/ExclusionFactBase','../priorityQueue/pri
                     v = v(bTreeRef,currentNode);
                 }
                 if(typeof v === 'string'){
-                    v = Number(bTreeRef.fb.exists(v));
+                    v = Number(bTreeRef.fb.parse(v));
                 }
                 if(!isNaN(v)){
                     return m + v;
@@ -833,11 +833,11 @@ define(['lodash','../exclusionLogic/old/ExclusionFactBase','../priorityQueue/pri
     
     //utilities for assertion/retraction of facts
     BTree.prototype.assert = function(...values){
-        values.forEach(d=>this.fb.assert(d));
+        values.forEach(d=>this.fb.parse(d));
     };
 
     BTree.prototype.retract = function(...values){
-        values.forEach(d=>this.fb.retract(d));
+        values.forEach(d=>this.fb.parse(d));
     };
     
     //Load descriptions of behaviours
@@ -955,9 +955,9 @@ define(['lodash','../exclusionLogic/old/ExclusionFactBase','../priorityQueue/pri
             //if the function returned a boolean, use that, otherwise exists
             if(typeof currentTestStatement === 'boolean'){
                 lastResult = currentTestStatement;
-            }else{
+            }else if(typeof currentTestStatement === 'string'){
                 //returns either an object of bindings, or true/false
-                lastResult = this.fb.exists(currentTestStatement);
+                lastResult = this.fb.parse(currentTestStatement);
             }
             if(callingNode && typeof lastResult !== 'boolean'){
                 this.debug('binding',lastResult);

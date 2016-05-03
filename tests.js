@@ -159,19 +159,19 @@ module.exports = {
             bTree = new BTree(),
             b1 = bTree.Behaviour('test_to_fail'),
             b2 = bTree.Behaviour('test_to_succeed');
-        b1.failCondition(".this.condition.should.activate.failure")
+        b1.failCondition(".this.condition.should.activate.failure?")
             .failAction(function(ctx){
                 failValue = 5;
             });
-        b2.failCondition(".this.condition.should.not.activate.failure")
+        b2.failCondition(".this.condition.should.not.activate.failure?")
             .failAction(function(ctx){
                 failValue = 10;
             });
-        bTree.fb.assert(".this.condition.should.activate.failure");
+        bTree.fb.parse(".this.condition.should.activate.failure");
         bTree.root.addChild('test_to_succeed','test_to_fail');
         test.ok(failValue === 0);
         bTree.update();//check the failure doesnt activate
-        test.ok(failValue === 0);
+        test.ok(failValue === 0,failValue);
         bTree.update();//check the failure does activate
         test.ok(failValue = 5);
         test.done();
@@ -181,20 +181,20 @@ module.exports = {
         let performVal = 0,
             bTree = new BTree(),
             b1 = bTree.Behaviour('waitTest');
-        b1.waitCondition(".should.cause.a.wait");
+        b1.waitCondition(".should.cause.a.wait?");
         b1.performAction(function(ctx){
             performVal = 5;
         });
 
         bTree.root.addChild('waitTest');
-        bTree.fb.assert('.should.cause.a.wait');
+        bTree.fb.parse('.should.cause.a.wait');
         for(let i = 0; i < 5; i++){
             bTree.update();
             test.ok(performVal === 0);
         };
-        bTree.fb.retract('.should.cause.a.wait');
+        bTree.fb.parse('!!.should.cause.a.wait');
         bTree.update();
-        test.ok(performVal === 5);
+        test.ok(performVal === 5,performVal);
         test.done();
     },
 
@@ -254,10 +254,10 @@ module.exports = {
             b1 = bTree.Behaviour('testPersistent');
 
         b1.persistent(true)
-            .persistCondition(".a.persistent.condition")
+            .persistCondition(".a.persistent.condition?")
             .performAction(ctx=>testVal += 5);
         bTree.root.addChild('testPersistent');
-        bTree.fb.assert(".a.persistent.condition");
+        bTree.fb.parse(".a.persistent.condition");
         test.ok(b1.toArray()[0].persistent === bTree.persistenceTypes.defaultPersistence);
         
         //run the btree repeatedly.
@@ -268,7 +268,7 @@ module.exports = {
             test.ok(testVal === referenceVal);
         }
         //retract, failing the persist condition:
-        bTree.fb.retract(".a.persistent.condition");
+        bTree.fb.parse("!!.a.persistent.condition");
         //should exist for one more update, then testVal and referenceVal should stay static
         referenceVal += 5;
         test.ok(bTree.conflictSet.size === 1);
@@ -286,7 +286,7 @@ module.exports = {
             b1 = bTree.Behaviour('testSpecificity'),
             b2 = bTree.Behaviour('testSpecificity');
         b1.preference(5)
-            .entryCondition(".this.will.fail")
+            .entryCondition(".this.will.fail?")
             .performAction(ctx=>testVal = 5);
         b2.preference(2)
             .performAction(ctx=>testVal = 10);
@@ -306,26 +306,26 @@ module.exports = {
             b1 = bTree.Behaviour('testSpecificity'),
             b2 = bTree.Behaviour('testSpecificity');
         b1.preference(5)
-            .entryCondition(entryConditionString)
+            .entryCondition(entryConditionString + '?')
             .performAction(ctx=>testVal = 5)
             .persistent(true);
         b2.preference(2)
             .performAction(ctx=>testVal = 10)
             .persistent(true);
         //first check the fallback:
-        //bTree.fb.assert(entryConditionString);
+        //bTree.fb.parse(entryConditionString);
         bTree.root.addChild('testSpecificity');
         test.ok(testVal === 0);
-        //retract ready for the re-add
-        bTree.fb.assert(entryConditionString);
+        //assert ready for the re-add
+        bTree.fb.parse(entryConditionString);
         bTree.update();
         test.ok(testVal === 10);
-        //reassert for the re-add
-        bTree.fb.retract(entryConditionString);
+        //retract for the re-add
+        bTree.fb.parse('!!'+entryConditionString);
         bTree.update();
         test.ok(testVal === 5);
         //and back again
-        bTree.fb.assert(entryConditionString);
+        bTree.fb.parse(entryConditionString);
         bTree.update();
         test.ok(testVal === 10);
         test.done();
@@ -357,16 +357,16 @@ module.exports = {
         let testArray = [],
             bTree = new BTree(),
             b1 = bTree.Behaviour('test')
-            .entryCondition(".this.is.a.test")
+            .entryCondition(".this.is.a.test?")
             .entryAction(function(ctx){
                 testArray.push('test entry');
             }),
             b2 = bTree.Behaviour('test2')
-            .entryCondition(".this.should.fail")
+            .entryCondition(".this.should.fail?")
             .entryAction(function(ctx){
                 testArray.push("test2 entry");
             });
-        bTree.fb.assert(".this.is.a.test");
+        bTree.fb.parse(".this.is.a.test");
         test.ok(testArray.length === 0);
         bTree.root.addChild('test');
         test.ok(testArray.length == 1);
@@ -387,7 +387,7 @@ module.exports = {
             .failAction(function(ctx){
                 testArray.push('test1 failed');
             });
-        bTree.fb.assert(".this.should.fail");
+        bTree.fb.parse(".this.should.fail");
         
         test.ok(testArray.length === 0);
         bTree.root.addChild('test1');
@@ -406,9 +406,8 @@ module.exports = {
     addBehaviourLeaf : function(test){
         let bTree = new BTree(),
             testVal = [];            
-
-        bTree.fb.assert(".this.is.a.test",".this.is.another!test");
-        
+        bTree.fb.parse(".this.is.a.test");
+        bTree.fb.parse(".this.is.another!test");
         bTree.Behaviour('test')
             .priority(0)
             .type("seq")
@@ -441,7 +440,6 @@ module.exports = {
         test.ok(testVal[1] === 'test2 entry');
         bTree.update();
         bTree.update();
-
         test.done();
     },
 
@@ -452,11 +450,11 @@ module.exports = {
             testVal = [];
         bTree.Behaviour('persistentCheck')
             .persistent(true)
-            .persistCondition('!!.persistent.finished')
+            .persistCondition('!!.persistent.finished?')
             .performAction((a,n)=>{
                 a.values.count++;
                 if(a.values.count >= 5){
-                    a.assert('.persistent.finished');
+                    a.fb.parse('.persistent.finished');
                 }
                 testVal.push(1);
             });
@@ -477,24 +475,24 @@ module.exports = {
             .subgoal('theSetup','theBody','theTearDown');
 
         bTree.Behaviour('theSetup')
-            .performAction(a=>testVal = 100,a=>a.assert(".should.persist"));
+            .performAction(a=>testVal = 100,a=>a.fb.parse(".should.persist"));
 
         bTree.Behaviour('theBody')
             .persistent(true)
-            .persistCondition(".should.persist","!!.has.finished")
+            .persistCondition(".should.persist?","!!.has.finished?")
             .performAction(a=>{
                 if(testVal < 110){
                     testVal += 2;
                 }else{
-                    a.retract(".should.persist");
-                    a.assert(".has.finished");;
+                    a.fb.parse("!!.should.persist");
+                    a.fb.parse(".has.finished");;
                 }
             });
 
         bTree.Behaviour('theTearDown')
-            .entryCondition(".has.finished")
+            .entryCondition(".has.finished?")
             .performAction(a=>{
-                a.retract(".has.finished");
+                a.fb.parse("!!.has.finished");
                 testVal = 200;
             });
 
@@ -504,27 +502,27 @@ module.exports = {
         //update to perform theSetup
         bTree.update();
         test.ok(testVal === 100);
-        test.ok(bTree.fb.exists(".should.persist"));
+        test.ok(bTree.fb.parse(".should.persist?"));
         //loop for the increments from 100 to 110
         for(let a = 100; a < 110;){
             bTree.update();
             a += 2;
-            test.ok(testVal === a);
+            test.ok(testVal === a,testVal);
         }
         test.ok(testVal === 110);
         //update retract/assert:
         bTree.update();
-        test.ok(bTree.fb.exists("!!.should.persist"));
-        test.ok(bTree.fb.exists(".has.finished"));
+        test.ok(bTree.fb.parse("!!.should.persist?"));
+        test.ok(bTree.fb.parse(".has.finished?"));
         //update to perform theTearDown
         bTree.update();
-        test.ok(bTree.fb.exists("!!.has.finished",
-                                "!!.should.persist"));
+        test.ok(bTree.fb.parse(["!!.has.finished?",
+                                "!!.should.persist?"]));
         //update to perform the topLevel, add the setup:
         bTree.update();
         bTree.update();
         test.ok(testVal === 100);
-        test.ok(bTree.fb.exists(".should.persist"));
+        test.ok(bTree.fb.parse(".should.persist?"));
         test.done();
     },
 
@@ -613,12 +611,12 @@ module.exports = {
         let testVal = null,
             bTree = new BTree();
         bTree.Behaviour('testBindingBehaviour')
-            .entryCondition('.should.bind.%{x}')
+            .entryCondition('.should.bind.[1]->x?')
             .performAction((d,n)=>{
                 testVal = n.bindings.x;
             });
         test.ok(testVal === null);
-        bTree.assert('.should.bind.blah');
+        bTree.fb.parse('.should.bind.blah');
         bTree.root.addChild('testBindingBehaviour');
         //perform the binding behaviour
         bTree.update();
@@ -630,11 +628,11 @@ module.exports = {
         let testVal = null,
             bTree = new BTree();
         bTree.Behaviour('testBindingNum')
-            .entryCondition('.should.bind.%{x}')
+            .entryCondition('.should.bind.[1]->x?')
             .performAction((d,n)=>{
                 testVal = n.bindings.x;
             });
-        bTree.assert(".should.bind.5");
+        bTree.fb.parse(".should.bind.5");
         bTree.root.addChild('testBindingNum');
         test.ok(testVal === null);
         bTree.update();
@@ -655,14 +653,14 @@ module.exports = {
             .subgoal('shouldRunFirst','shouldRunSecond');
 
         bTree.Behaviour('shouldRunFirst')
-            .priorityCondition(".this.should.trigger^10/0")
+            .priorityCondition(".this.should.trigger?#10/0")
             .performAction(d=>testVal = "first");                
 
         bTree.Behaviour('shouldRunSecond')
-            .priorityCondition(".this.should.trigger.less^2/0")
+            .priorityCondition(".this.should.trigger.less?#2/0")
             .performAction(d=>testVal = "second");
 
-        bTree.assert(".this.should.trigger.less");
+        bTree.fb.parse(".this.should.trigger.less");
         bTree.root.addChild("testParallel");
         //update to add the two sub behaviours
         bTree.update();
@@ -686,15 +684,15 @@ module.exports = {
             .subgoal('shouldRunFirst','shouldRunSecond');
 
         bTree.Behaviour('shouldRunFirst')
-            .priorityCondition(".this.should.trigger^10/0",
-                              ".this.should.fail^0/-200")
+            .priorityCondition(".this.should.trigger?#10/0",
+                              ".this.should.fail?#0/-200")
             .performAction(d=>testVal = "first");                
 
         bTree.Behaviour('shouldRunSecond')
-            .priorityCondition(".this.should.trigger.less^2/0")
+            .priorityCondition(".this.should.trigger.less?#2/0")
             .performAction(d=>testVal = "second");
 
-        bTree.assert(".this.should.trigger.less");
+        bTree.fb.parse(".this.should.trigger.less");
         bTree.root.addChild("testParallel");
         //update to add the two sub behaviours
         bTree.update();
