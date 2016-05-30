@@ -22,9 +22,6 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         SUCCESSPERSIST = Symbol('persist_until_success'),
         FAILPERSIST = Symbol('persist_until_failure'),
         PERSIST = Symbol('persist');
-
-    
-
     
     //The internal failure error:
     var BTreeError = function(value){
@@ -234,6 +231,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
        The Reified Node used in the Working Tree
     */
     var BTreeNodeReal = function(abstractNodes,values,parent,bTreeRef){
+        bTreeRef.debug('addChild',abstractNodes);
         this.id = gid++;
         //For access back to the tree
         this.bTreeRef = bTreeRef;
@@ -265,9 +263,11 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         //shortcut to the selected abstract
         //if we get here, the node is valid, so integrate it into the tree/conflict set
         this.findSpecificity();
+
         //--------------------
         //add self to the btree and parent, and the conflict set
         //--------------------
+        this.bTreeRef.debug('addChild','adding to allRealNodes');
         this.bTreeRef.allRealNodes[this.id] = this;
         if(this.parent){
             this.bTreeRef.conflictSet.delete(this.parent);
@@ -278,7 +278,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         if(this.currentAbstract && this.currentAbstract.conditions.context.length > 0){
             this.bTreeRef.contextConditions.set(this,this.currentAbstract.conditions.context);
         }
-        
+        bTreeRef.debug('addChild','completed');
     };
     BTreeNodeReal.constructor = BTreeNodeReal;
 
@@ -302,7 +302,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
                 }
             },this.currentAbstract.priority);
         }catch(error){
-            sumPriority = this.currentAbstract.priority;
+            sumPriority = this.currentAbstract !== undefined ? this.currentAbstract.priority : 0;
         }        
         return sumPriority;
     };
@@ -406,29 +406,33 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
        Figure out the correct specificity for the node
      */
     BTreeNodeReal.prototype.findSpecificity = function(persistentEntry){
+        this.bTreeRef.debug('addChild','finding specificity');
         let i = 0;
         this.currentAbstract = this.abstractNodes[i];
         //get an applicable specificity, if you are dealing with an actual abstract based node
         if(this.abstractNodes.length > 0){
             while(this.currentAbstract && !this.bTreeRef.testConditions(this.currentAbstract.conditions.entry,this)){
+                this.bTreeRef.debug('addChild','trying next abstract');
                 this.currentAbstract = this.abstractNodes[++i];
             }
             if(this.currentAbstract && !persistentEntry){
                 //perform the entry actions of the initial successful abstract:
                 //a real node will only be created if the entry conditions of the specificity pass
+                this.bTreeRef.debug('addChild','running entry actions');
                 this.runActions('entry');
             }else if(this.currentAbstract === undefined){
+                this.bTreeRef.debug('addChild','failed to find abstract');
                 throw new BTreeError(`No suitable abstract for node: ${this.abstractNodes[0].name}`);
             }
         }
-    }    
+    }; 
 
     /**
        update
        The main update function outsources most things
     */
     BTreeNodeReal.prototype.update = function(){
-        this.bTreeRef.debug('update',`Updating: ${this.currentAbstract.name}`);
+        this.bTreeRef.debug('update',`Updating: ${this.currentAbstract}`);
         try{
             if(this.shouldFail()){
                 throw new BTreeError("Behaviour Fails");
@@ -603,9 +607,16 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
        @returns {Boolean} T: Successful add, F: no specificity was able to be added
     */
     BTreeNodeReal.prototype.addChild = function(childName){
-        let abstracts = this.bTreeRef.getAbstracts(childName),
-            i = 0,
-            realBehaviour = new BTreeNodeReal(abstracts,{},this,this.bTreeRef);
+        this.bTreeRef.debug('addChild',`adding ${childName}`);
+        try{
+            let abstracts = this.bTreeRef.getAbstracts(childName),
+                i = 0,
+                realBehaviour = new BTreeNodeReal(abstracts,{},this,this.bTreeRef);
+        }catch(error){
+            if(!(error instanceof BTreeError)){ throw error;}
+            //adding failed...
+            this.bTreeRef.debug('addChild','Adding node failed');
+        }
         return this;
     };
 
@@ -747,6 +758,8 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         this.debugFlags = {};
         //name -> [abstracts]
         this.behaviourLibrary = {};
+        //default initial tree:
+        this.loadBehaviours([new BTreeNodeAbstract('initialTree')]);
         //a Map of sets
         this.behaviourTags = new Map();
         this.loadBehaviours(sharedAbstractLibrary);
@@ -808,7 +821,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
                 if(typeof d === 'function'){
                     d = d()
                 }
-                console.log(flag,d);
+                console.log('DEBUG:',flag,d);
             });
         }
     };
@@ -919,6 +932,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             potentials = [],//maximise
             chosenNode;
         //calculate each behaviour, add it into the priority queue:
+        this.debug('conflictSet',this.conflictSet);
         this.conflictSet.forEach(d=>conflictPriorityQueue.insert(d,d.priority()));
 
         for(let i = this.conflictSetSelectionSize; i > 0 && !conflictPriorityQueue.empty(); i--){
