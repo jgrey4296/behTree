@@ -759,7 +759,9 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         //name -> [abstracts]
         this.behaviourLibrary = {};
         //default initial tree:
-        this.loadBehaviours([new BTreeNodeAbstract('initialTree')]);
+        let defaultInitialTree = new BTreeNodeAbstract('initialTree');
+        defaultInitialTree.preference = -1;
+        this.loadBehaviours([defaultInitialTree]);
         //a Map of sets
         this.behaviourTags = new Map();
         this.loadBehaviours(sharedAbstractLibrary);
