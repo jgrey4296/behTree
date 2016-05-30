@@ -87,3 +87,6 @@ No different from other nodes, just without children, will execute actions then 
 it would be a good idea to be able to run a sanity check on the behaviours,
 making sure at the very least all subgoals exist
 *** TODO switch over to new parser based EFB
+** TODO Documentation
+*** TODO Agent Description
+*** TODO Node Description
