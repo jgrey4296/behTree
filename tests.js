@@ -11,7 +11,7 @@ module.exports = {
         test.ok(bTree !== undefined);
         test.ok(bTree.root !== undefined);
         test.ok(bTree.behaviourLibrary !== undefined);
-        test.ok(_.keys(bTree.behaviourLibrary).length === 0);
+        test.ok(_.keys(bTree.behaviourLibrary).length === 1);
         test.ok(_.keys(bTree.allRealNodes).length === 1);
         test.ok(bTree.conflictSet.size === 1);
         test.done();
@@ -20,20 +20,20 @@ module.exports = {
     //add a basic behaviour
     addBehaviour : function(test){
         let bTree = new BTree();
-        test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
+        bTree.Behaviour('blah');
+        test.ok(_.keys(bTree.behaviourLibrary).length === 2);
         test.done();
     },
 
     //add duplicate behaviour
     addSecondBehaviour : function(test){
         let bTree = new BTree();
-        test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
         bTree.Behaviour('blah');
-        test.ok(_.keys(bTree.behaviourLibrary).length === 1);
+        test.ok(_.keys(bTree.behaviourLibrary).length === 2);
+        bTree.Behaviour('blah');
+        test.ok(_.keys(bTree.behaviourLibrary).length === 2);
         test.ok(bTree.behaviourLibrary['blah'].length === 2);
         test.done();
     },
@@ -41,11 +41,11 @@ module.exports = {
     //add a different behaviour
     addDifferentBehaviour : function(test){
         let bTree = new BTree();
-        test.ok(_.keys(bTree.behaviourLibrary).length === 0);
-        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 1);
-        bTree.Behaviour('bloo');
+        bTree.Behaviour('blah');
         test.ok(_.keys(bTree.behaviourLibrary).length === 2);
+        bTree.Behaviour('bloo');
+        test.ok(_.keys(bTree.behaviourLibrary).length === 3);
         test.done();
     },
     
@@ -274,7 +274,7 @@ module.exports = {
         test.ok(bTree.conflictSet.size === 1);
         bTree.update();//behaviour is removed here
         test.ok(testVal === referenceVal);
-        test.ok(bTree.conflictSet.size === 0);//nothing remains on the active tree
+        test.ok(bTree.conflictSet.size === 1);//nothing remains on the active tree but the initial tree
         bTree.update();
         test.ok(testVal === referenceVal);
         test.done();
@@ -371,9 +371,9 @@ module.exports = {
         bTree.root.addChild('test');
         test.ok(testArray.length == 1);
         test.ok(testArray[0] === 'test entry');
-        test.throws(function(){
-            bTree.root.addChild('test2');
-        });
+        //test.throws(function(){
+        //    bTree.root.addChild('test2');
+        //});
         test.ok(testArray.length === 1);
         test.done();
     },
@@ -705,7 +705,31 @@ module.exports = {
         test.done();
     },
 
-    
+    //entry conditions are NOT run on persistence, only on initial add to tree
+    persist_entry_condition_test : function(test){
+        let entryVal = 0,
+            performVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testPersistentEntry');
+
+        //bTree.setDebugFlags('addChild','conflictSet');
+        
+        b1.entryCondition(`.test.entry?`)
+            .entryAction(()=>entryVal += 5)
+            .persistent(true)
+            .performAction(()=>performVal += 5);
+
+        bTree.fb.parse('.test.entry');
+        bTree.root.addChild('testPersistentEntry');
+        bTree.update();
+        test.ok(entryVal === 5);
+        test.ok(performVal === 5);
+        //and another go:
+        bTree.update();
+        test.ok(entryVal === 5);
+        test.ok(performVal === 10);
+        test.done();
+    },
     
 
 };
