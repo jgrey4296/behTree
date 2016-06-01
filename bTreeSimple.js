@@ -3,6 +3,7 @@ if(typeof define !== 'function'){
     var define = require('amdefine')(module);
 }
 
+//note:EL | PriorityQueue
 define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQueue'],function(_,ExFB,PriorityQueue){
     "use strict";
     var gid = 0,
@@ -359,18 +360,17 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
        @param override shortcuts infinite looping within inform parent persistence
      */
     BTreeNodeReal.prototype.informParent = function(status,override){
-        //console.log('informing parent of ',this.currentAbstract.name,status);
         this.bTreeRef.debug('update',`informing parent:`+status.toString());
         //if this inform isnt being called from inside an inform
         if(override === undefined && this.currentAbstract.persistent !== false){
             this.bTreeRef.debug('update','resetting persistent');
             let persist = false;
             //see if the node should persist:
-            if(this.currentAbstract.persistent === SUCCESSPERSIST && status !== SUCCESS && this.bTreeRef.testConditions(this.currentAbstract.condition.persist)){
+            if(this.currentAbstract.persistent === SUCCESSPERSIST && status !== SUCCESS && this.bTreeRef.testConditions(this.currentAbstract.condition.persist,this)){
                 persist = true;
-            }else if(this.currentAbstract.persistent === FAILPERSIST && status !== FAIL && this.bTreeRef.testConditions(this.currentAbstract.condition.persist)){
+            }else if(this.currentAbstract.persistent === FAILPERSIST && status !== FAIL && this.bTreeRef.testConditions(this.currentAbstract.condition.persist,this)){
                 persist = true;
-            }else if(this.currentAbstract.persistent === PERSIST && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist)){
+            }else if(this.currentAbstract.persistent === PERSIST && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist,this)){
                 persist = true;
             }
             //----
@@ -438,7 +438,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
                 throw new BTreeError("Behaviour Fails");
             }
             if(this.shouldWait()){
-                return;
+                return WAIT; 
             }
             if(this.performed !== true){
                 this.runActions('perform');
@@ -447,25 +447,27 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
                 console.log('not running perform actions');
             }
             this.typeUpdate();
+            return SUCCESS;
         }catch(error){
             if(!(error instanceof BTreeError)){ throw error; }                   
             //propagate the failure
             //console.log('failure:',error);
             this.bTreeRef.debug('failure',error);
             this.informParent(FAIL);
+            return FAIL;
         }
     };
 
     BTreeNodeReal.prototype.shouldFail = function(){
         if(this.currentAbstract.conditions.fail.length > 0){
-            return this.bTreeRef.testConditions(this.currentAbstract.conditions.fail);
+            return this.bTreeRef.testConditions(this.currentAbstract.conditions.fail,this);
         }
         return false;
     };
 
     BTreeNodeReal.prototype.shouldWait = function(){
         if(this.currentAbstract.conditions.wait.length > 0){
-            return this.bTreeRef.testConditions(this.currentAbstract.conditions.wait);
+            return this.bTreeRef.testConditions(this.currentAbstract.conditions.wait,this);
         }
         return false;
     };
@@ -481,8 +483,9 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             if(error instanceof BTreeError) { throw error; }
             //throw the error with information about the action type,
             //and behaviour name
-            let behaviourName = this.currentAbstract.name;
-            throw new Error(`${behaviourName} : ${actionsType} :: ${error.message}`);
+            let behaviourName = this.currentAbstract.name,
+                currentPriority = this.currentAbstract.priority;
+            throw new Error(`${behaviourName}:${currentPriority} : ${actionsType} :: ${error.message}`);
         }
     };
 
@@ -804,6 +807,10 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             'failurePersistence' : FAILPERSIST,
             'defaultPersistence' : PERSIST
         };
+        this.returnTypes = {
+            'success' : SUCCESS,
+            'fail' : FAIL
+        };
     };
     BTree.constructor = BTree;
 
@@ -913,16 +920,15 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
     /**
        The main update method, steps the btree forward
     */
-    BTree.prototype.update = function(printChosenNode){
+    BTree.prototype.update = function(){
         //Sort the conflict set by priority, choose from the top 5 in the set
         //console.log("Conflict Set:",Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
         this.debug('preConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
 
         //run context conditions, deal with failures
         this.contextConditions.forEach((conds,node)=>{
-            if(!this.testConditions(conds)){
-                //let status = this.contextType === SUCCESSCONTEXT ? SUCCESSCONTEXT : FAILCONTEXT;
-                node.informParent(this.contextType);
+            if(!this.testConditions(conds,node)){
+                node.informParent(node.currentAbstract.contextType);
             }
         });
         
@@ -932,7 +938,8 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         */
         let conflictPriorityQueue = new PriorityQueue(true),
             potentials = [],//maximise
-            chosenNode;
+            chosenNode,
+            lastReturn = WAIT;
         //calculate each behaviour, add it into the priority queue:
         this.debug('conflictSet',this.conflictSet);
         this.conflictSet.forEach(d=>conflictPriorityQueue.insert(d,d.priority()));
@@ -940,12 +947,14 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         for(let i = this.conflictSetSelectionSize; i > 0 && !conflictPriorityQueue.empty(); i--){
             potentials.push(conflictPriorityQueue.next());
         }
-                
-        chosenNode = _.sample(potentials);
-        if(chosenNode){
-            chosenNode.update();
+        potentials = _.shuffle(potentials);
+        
+        while(lastReturn === WAIT && potentials.length > 0){
+            chosenNode = potentials.shift();
+            if(chosenNode){
+                lastReturn = chosenNode.update();
+            }
         }
-
         this.debug('postConflictSet',d=>Array.from(this.conflictSet).map(d=>d.currentAbstract.name));
         this.debug('facts',d=>this.fb.toStrings());
     };
