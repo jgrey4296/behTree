@@ -69,7 +69,7 @@ module.exports = {
         test.done();
     },
 
-    setSpecificity : function(test){
+    setPreference : function(test){
         let bTree = new BTree(),
             b1 = bTree.Behaviour('b1'),
             b2 = bTree.Behaviour('b1'),
@@ -94,9 +94,9 @@ module.exports = {
             b3 = bTree.Behaviour('b1'),
             group = bTree.behaviourLibrary['b1'];
 
-        test.ok(Array.from(b1.behaviours)[0].specificity === 0);
-        test.ok(Array.from(b2.behaviours)[0].specificity === 0);
-        test.ok(Array.from(b3.behaviours)[0].specificity === 0);
+        test.ok(Array.from(b1.behaviours)[0].preference === 0);
+        test.ok(Array.from(b2.behaviours)[0].preference === 0);
+        test.ok(Array.from(b3.behaviours)[0].preference === 0);
         
         b1.preference(-1);
         b2.preference(10);
@@ -136,7 +136,7 @@ module.exports = {
     },
     
     ////specificity
-    specificitySetCheck : function(test){
+    preferenceCheck : function(test){
         let bTree = new BTree(),
             b1 = bTree.Behaviour('b1'),
             b2 = bTree.Behaviour('b2');
@@ -241,7 +241,7 @@ module.exports = {
         //add
         bTree.root.addChild('toBeSelected').addChild('toBeIgnored');
         test.ok(bTree.conflictSet.size === 2);
-        bTree.update(true);
+        bTree.update();
         test.ok(testVal === 5);
         test.done();
     },
@@ -280,7 +280,24 @@ module.exports = {
         test.done();
     },
 
-    specificity_fallback_check : function(test){
+    preference_check : function(test){
+        let testVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('testSpecificity'),
+            b2 = bTree.Behaviour('testSpecificity');
+        b1.preference(5)
+            .performAction(ctx=>testVal = 5);
+        b2.preference(2)
+            .performAction(ctx=>testVal = 10);
+
+        bTree.root.addChild('testSpecificity');
+        test.ok(testVal === 0);
+        bTree.update();
+        test.ok(testVal === 5);        
+        test.done();
+    },
+    
+    preference_fallback_check : function(test){
         let testVal = 0,
             bTree = new BTree(),
             b1 = bTree.Behaviour('testSpecificity'),
@@ -731,5 +748,32 @@ module.exports = {
         test.done();
     },
     
+    subGoals_occur_after_performance : function(test){
+        let performValue = 0,
+            subgoalValue = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('topLevel'),
+            b2 = bTree.Behaviour('subLevel');
 
+        b1.performAction((a,n)=>performValue = 5)
+            .subgoal('subLevel');
+        b2.performAction((a,n)=>subgoalValue = 5);
+
+        test.ok(performValue === 0);
+        test.ok(subgoalValue === 0);
+        bTree.root.addChild('topLevel');
+        bTree.update();
+        test.ok(performValue === 5);
+        test.ok(subgoalValue === 0);
+        bTree.update();
+        test.ok(performValue === 5);
+        test.ok(subgoalValue === 5);
+        test.done();
+    },
+
+    //todo: test context conditions
+
+    //todo: check conditions are called with agent and node passed in
+
+    //todo: check wait conditions
 };
