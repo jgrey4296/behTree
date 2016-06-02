@@ -366,11 +366,14 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             this.bTreeRef.debug('update','resetting persistent');
             let persist = false;
             //see if the node should persist:
-            if(this.currentAbstract.persistent === SUCCESSPERSIST && status !== SUCCESS && this.bTreeRef.testConditions(this.currentAbstract.condition.persist,this)){
+            if(this.currentAbstract.persistent === SUCCESSPERSIST && status !== SUCCESS && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist,this)){
+                //persist until success
                 persist = true;
-            }else if(this.currentAbstract.persistent === FAILPERSIST && status !== FAIL && this.bTreeRef.testConditions(this.currentAbstract.condition.persist,this)){
+            }else if(this.currentAbstract.persistent === FAILPERSIST && status !== FAIL && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist,this)){
+                //persist until failure
                 persist = true;
             }else if(this.currentAbstract.persistent === PERSIST && this.bTreeRef.testConditions(this.currentAbstract.conditions.persist,this)){
+                //persist if conditions say so
                 persist = true;
             }
             //----
@@ -928,7 +931,7 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         //run context conditions, deal with failures
         this.contextConditions.forEach((conds,node)=>{
             if(!this.testConditions(conds,node)){
-                node.informParent(node.currentAbstract.contextType);
+                node.informParent(node.currentAbstract.contextType,true);
             }
         });
         
