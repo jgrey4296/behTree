@@ -771,9 +771,144 @@ module.exports = {
         test.done();
     },
 
-    //todo: test context conditions
+    //Check behaviours can fail/stop from context conditions
+    context_condition_check : function(test){
+        let testVal = 0,
+            contextVal = 5,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('contextConditionTest');
 
+        b1.persistent('fail')
+            .contextCondition(()=>{
+                return contextVal === 5;
+            })
+            .contextType('fail')
+            .performAction((a,n)=>testVal += 5);
+
+        test.ok(bTree.contextConditions.size === 0);        
+        bTree.root.addChild('contextConditionTest');
+        test.ok(bTree.contextConditions.size === 1);
+        bTree.update();
+        test.ok(testVal === 5);
+        bTree.update();
+        test.ok(testVal === 10);
+        contextVal = 10;
+        bTree.update();
+        test.ok(testVal === 10,testVal);
+        test.done();
+    },
+
+    //verify that a child of a node with a context condition will be cleaned up
+    //when the context condition fails
+    context_condition_invalidates_children : function(test){
+        let testVal = 0,
+            contextVal = 0,
+            failVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('topContextTest'),
+            b2 = bTree.Behaviour('childContextTest');
+
+        b1.contextType('fail')
+            .contextCondition(()=>contextVal === 0)
+            .subgoal('childContextTest')
+            .failAction((a,n)=>{
+                failVal = 666;
+            });
+
+        b2.persistent(true)
+            .performAction((a,n)=>{
+                testVal += 5;
+            });
+        
+        bTree.root.addChild('topContextTest');
+        test.ok(bTree.contextConditions.size === 1);
+        bTree.update();
+        test.ok(testVal === 0);
+        bTree.update();
+        test.ok(testVal === 5);
+        bTree.update();
+        test.ok(testVal === 10);
+        test.ok(failVal === 0);
+        contextVal = 5;
+        bTree.update();
+        test.ok(testVal === 10);
+        test.ok(failVal === 666);
+        test.done();
+    },
+
+    //check a context condition failing can succeed a node with contextType success:
+    context_succeed_check : function(test){
+        let testVal = 0,
+            contextVal = 0,
+            bTree = new BTree(),
+            b1 = bTree.Behaviour('contextTest');
+
+        b1.persistent(true)
+            .contextType('success')
+            .contextCondition(()=>contextVal === 0)
+            .performAction((a,n)=>testVal += 5)
+            .exitAction((a,n)=>{
+                testVal = 666;
+            })
+            .failAction((a,n)=>{
+                testVal = 123;
+            });
+
+        bTree.root.addChild('contextTest');
+        test.ok(testVal === 0);
+        bTree.update();
+        test.ok(testVal === 5);
+        bTree.update();
+        test.ok(testVal === 10);
+        contextVal = 100;
+        bTree.update();
+        test.ok(testVal === 666,testVal);
+        test.done();
+    },
+    
     //todo: check conditions are called with agent and node passed in
+    conditionParamCheck : function(test){
+        //5 condition types, a pair in each. entry conditions run twice (so persistent fire too)
+        test.expect(12);
+        let values = { name : 'bob' },
+            bTree = new BTree(undefined,undefined,values),
+            b1 = bTree.Behaviour('parameterCheck');
 
+        //entry
+        b1.entryCondition((a,n)=>{
+            test.ok(a.values.name === values.name);
+            test.ok(n !== undefined);
+            return true;
+        })
+        //persistent
+            .persistent(true)
+            .persistCondition((a,n)=>{
+                test.ok(a.values.name === values.name);
+                test.ok(n !== undefined);
+                return true;
+            })
+        //wait
+            .waitCondition((a,n)=>{
+                test.ok(a.values.name === values.name);
+                test.ok(n !== undefined);
+                return false;
+            })
+        //fail
+            .failCondition((a,n)=>{
+                test.ok(a.values.name === values.name);
+                test.ok(n !== undefined);
+                return false;
+            })
+        //context
+            .contextCondition((a,n)=>{
+                test.ok(a.values.name === values.name);
+                test.ok(n !== undefined);
+                return true;
+            });
+        bTree.root.addChild('parameterCheck');
+        bTree.update();
+        test.done();
+    },
+    
     //todo: check wait conditions
 };
