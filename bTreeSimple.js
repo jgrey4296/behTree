@@ -322,9 +322,10 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             this.children[childId].cleanup(status === FAIL ? false : true );
         }
         //console.log("Informed",this.id,this);
-        if(this.currentAbstract === undefined){ return; }
-        //Deal with SEQUENTIAL NODES
-        if(this.currentAbstract.type === SEQUENTIAL){            
+        if(this.currentAbstract === undefined && this.parent !== undefined){
+            this.informParent(status);
+        }else if(this.currentAbstract.type === SEQUENTIAL){
+            //Deal with SEQUENTIAL NODES
             if(status === SUCCESS){
                 ////increment step counter
                 this.sequenceCounter++;
@@ -332,11 +333,11 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
             }else {
                 this.informParent(status);
             }
-            //DEAL WITH CHOICE NODES
         }else if(this.currentAbstract.type === CHOICE){
+            //DEAL WITH CHOICE NODES
             this.informParent(status);
-            //DEAL WITH PARALLEL NODES
         }else if(this.currentAbstract.type === PARALLEL){
+            //DEAL WITH PARALLEL NODES
             if(status === SUCCESS){
                 this.parallelSuccessCounter++;
             }else if(status === FAIL){
@@ -604,6 +605,8 @@ define(['lodash','../exclusionLogic/js/EL_Runtime','../priorityQueue/priorityQue
         //cleanup all children:
         _.values(this.children).forEach(d=>d.cleanup(performPostActions));
         this.children = {};
+        //REMOVE FROM THE ALLNODES FIELD OF THE BTREE:
+        delete this.bTreeRef.allRealNodes[this.id];
     };
 
     /**
