@@ -2,8 +2,8 @@
   "name": "behaviourtree",
   "version": "0.0.1",
   "description": "A Simple ABL like behaviour tree",
-  "main": "dist/bTreeSimple.js",
-  "module": "src/bTreeSimple.js",
+  "main": "dist/BTree.js",
+  "module": "src/BTree.js",
   "directories": {
     "test": "tests"
   },
@@ -37,9 +37,12 @@
     "flow-babel-webpack-plugin": "^1.0.1",
     "flow-bin": "^0.41.0",
     "jsdoc": "^3.4.3",
+    "libstl": "^0.1.22",
     "lodash": "^4.17.4",
     "mocha": "^3.2.0",
     "mocha-pending": "^1.0.0",
+    "parsimmon": "^1.2.0",
+    "priorityqueuejs": "^1.0.0",
     "webpack": "^2.2.1"
   }
 }
