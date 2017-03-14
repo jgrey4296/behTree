@@ -1,0 +1,45 @@
+{
+  "name": "behaviourtree",
+  "version": "0.0.1",
+  "description": "A Simple ABL like behaviour tree",
+  "main": "dist/bTreeSimple.js",
+  "module": "src/bTreeSimple.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha --check-leaks -c --prof --log-timer-events --require babel-polyfill --compilers js:babel-register",
+    "start": "node_modules/.bin/webpack --config webpack.config.babel.js",
+    "flow": "node_modules/.bin/flow",
+    "clean": "rm -r dist; rm -r docs; exit 0",
+    "doc": "node_modules/.bin/jsdoc ./src -r -d ./docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jgrey4296/behTree.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jgrey4296/behTree/issues"
+  },
+  "homepage": "https://github.com/jgrey4296/behTree#readme",
+  "devDependencies": {
+    "babel-core": "^6.24.0",
+    "babel-eslint": "^7.1.1",
+    "babel-loader": "^6.4.0",
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-env": "^1.2.1",
+    "babel-register": "^6.24.0",
+    "chai": "^3.5.0",
+    "eslint": "^3.17.1",
+    "eslint-loader": "^1.6.3",
+    "flow-babel-webpack-plugin": "^1.0.1",
+    "flow-bin": "^0.41.0",
+    "jsdoc": "^3.4.3",
+    "lodash": "^4.17.4",
+    "mocha": "^3.2.0",
+    "mocha-pending": "^1.0.0",
+    "webpack": "^2.2.1"
+  }
+}
