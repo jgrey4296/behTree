@@ -6,12 +6,12 @@ const ENV = process.env.NODE_ENV || 'development';
 
 module.exports = {
     context: path.resolve(__dirname,'src'),
-    entry: './bTreeSimple.js',
+    entry: './BTree.js',
     
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bTreeSimple.js',
-        library: "bTreeSimple",
+        filename: 'BTree.js',
+        library: "BTree",
         libraryTarget: "umd"        
     },
     
@@ -33,8 +33,8 @@ module.exports = {
 
     plugins: [
         new FlowBabelWebpackPlugin(),
-        new webpack.optimize.UglifyJsPlugin({
-            sourceMap: true
-        })
+        // new webpack.optimize.UglifyJsPlugin({
+        //     sourceMap: true
+        // })
     ],
 };
