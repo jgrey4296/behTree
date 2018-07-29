@@ -8,7 +8,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "mocha --check-leaks -c --prof --log-timer-events --require babel-polyfill --compilers js:babel-register",
+      "testfull": "mocha --check-leaks -c --prof --log-timer-events --require babel-polyfill --compilers js:babel-register",
+      "test" : "mocha --check-leaks -c --require babel-polyfill --compilers js:babel-register",
     "start": "node_modules/.bin/webpack --config webpack.config.babel.js",
     "flow": "node_modules/.bin/flow",
     "clean": "rm -r dist; rm -r docs; exit 0",
