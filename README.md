@@ -17,9 +17,6 @@
 [Example project](https://github.com/jgrey4296/aiOnHexBoard)
 
 
-## Production usage:
-modify the bTreeSimple dependencies of the `exclusionFactBase` and `priorityQueue` to correct paths.
-    
 
 ## Files
 * bTreeSimple.js - The Main Behaviour Tree Library
@@ -29,10 +26,7 @@ modify the bTreeSimple dependencies of the `exclusionFactBase` and `priorityQueu
 * plan.org - Emacs org mode tracking of tasks
 
 ## Dependencies
-[PriorityQueue.js](https://github.com/jgrey4296/priorityQueue.js)  
 [ExclusionLogic](http://github.com/jgrey4296/exclusionLogic) for internal facts and tests  
-[lodash](https://lodash.com/)  
-[NodeUnit](https://github.com/caolan/nodeunit) for unit tests  
 
 ## Basic Usage
 All on an instance `var bTree = new BTree();`
@@ -114,7 +108,7 @@ There are also predefined values and parameter method setters:
 - `.contextType(va)` : "success" | "fail"
 - `.subgoal(...vals)` : strings
 
-#### Conditions
+#### Conditions.
 Conditions are specified in three forms: Boolean Functions, ExclusionLogic Strings, and Functions returning
 Exclusion Logic Strings. The functions take two parameters: the `bTree` instance, and the `currentNode` instance of the tree.  
 
