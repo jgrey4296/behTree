@@ -1,5 +1,5 @@
 import { BTreeEnums } from './BTreeEnums';
-import { PriorityQueue } from 'priorityqueuejs';
+import  PriorityQueue from 'priorityqueuejs';
 
 //------------------------------------------------------------------------------
 /**
@@ -188,17 +188,17 @@ BTree.prototype.update = function(){
       TODO: calculate priorities based on priorityrules
       forEach a in conflictSet, apply rules, aggregate values, then sort, then slice
     */
-    let conflictPriorityQueue = new PriorityQueue(true),
+    let conflictPriorityQueue = new PriorityQueue((a,b) => { a.priority() - b.priority() }),
         potentials = [],//maximise
         chosenNode,
         lastReturn = WAIT;
     //calculate each behaviour, add it into the priority queue:
     this.debug('conflictSet',this.conflictSet);
-    this.conflictSet.forEach(d=>conflictPriorityQueue.insert(d,d.priority()));
+    this.conflictSet.forEach(d=>conflictPriorityQueue.enq(d));
 
     //Only get the top N possible behaviours
-    for(let i = this.conflictSetSelectionSize; i > 0 && !conflictPriorityQueue.empty(); i--){
-        potentials.push(conflictPriorityQueue.next());
+    for(let i = this.conflictSetSelectionSize; i > 0 && conflictPriorityQueue.size() !== 0; i--){
+        potentials.push(conflictPriorityQueue.deq());
     }
     potentials = _.shuffle(potentials);
     
